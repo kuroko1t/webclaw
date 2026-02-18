@@ -8,13 +8,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { NativeMessagingClient } from './native-messaging-client.js';
 
-export function createWebClawServer(): McpServer {
+export function createWebClawServer(options?: { nativeClient?: NativeMessagingClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
     version: '0.1.0',
   });
 
-  const nativeClient = new NativeMessagingClient();
+  const nativeClient = options?.nativeClient ?? new NativeMessagingClient();
 
   // --- Tool: navigate_to ---
   server.tool(
