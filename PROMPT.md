@@ -6,30 +6,23 @@
 3. Work on next uncompleted checklist item below
 4. Commit progress
 
-## Already Completed
-- vitest.config.ts added to shared and mcp-server
-- packages/shared unit tests: 61 tests passing
-
-## Remaining Checklist (work top to bottom)
-- [ ] mcp-server unit tests for native-messaging-client.ts and server.ts
-- [ ] extension unit tests for snapshot-engine.ts, action-executor.ts, webmcp-discovery.ts using jsdom
-- [ ] MCP Server stdio startup and shutdown test
-- [ ] manifest.json MV3 compliance validation
-- [ ] error handling improvements
-- [ ] README.md with architecture diagram and setup instructions
-- [ ] MIT LICENSE file
-- [ ] package.json metadata (repository, keywords, homepage)
-- [ ] npx webclaw --help support
+## Checklist
+- [x] vitest.config.ts added to shared and mcp-server
+- [x] packages/shared unit tests: 61 tests
+- [x] mcp-server unit tests for native-messaging-client.ts and server.ts: 18 tests
+- [x] extension unit tests for snapshot-engine.ts, action-executor.ts, webmcp-discovery.ts using jsdom: 53 tests
+- [x] MCP Server stdio startup and shutdown test
+- [x] manifest.json MV3 compliance validation
+- [x] error handling improvements
+- [x] README.md with architecture diagram and setup instructions
+- [x] MIT LICENSE file
+- [x] package.json metadata (repository, keywords, homepage)
+- [x] npx webclaw --help support
 
 ## Done Conditions (ALL must be true)
-- pnpm build passes
-- pnpm test passes with 30+ test cases
-- README.md exists with setup instructions
-- LICENSE file exists
-- All checklist items above completed
+- [x] pnpm build passes
+- [x] pnpm test passes with 30+ test cases (132 tests)
+- [x] README.md exists with setup instructions
+- [x] LICENSE file exists
+- [x] All checklist items above completed
 - When ALL conditions met, output: <promise>WEBCLAW READY</promise>
-
-## Rules
-- Do not try to do everything in one iteration
-- Do not commit if tests are failing
-- Make steady, reliable progress each iteration

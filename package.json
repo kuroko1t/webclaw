@@ -1,9 +1,23 @@
 {
-  "name": "webclaw",
+  "name": "webclaw-monorepo",
   "version": "0.1.0",
   "private": true,
   "description": "The first WebMCP-native browser agent",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuroko1t/hermitclaw"
+  },
+  "homepage": "https://github.com/kuroko1t/hermitclaw#readme",
+  "keywords": [
+    "webmcp",
+    "mcp",
+    "browser-agent",
+    "chrome-extension",
+    "ai-agent",
+    "claude",
+    "web-automation"
+  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
