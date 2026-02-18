@@ -1,0 +1,37 @@
+{
+  "name": "webclaw",
+  "version": "0.1.0",
+  "description": "WebClaw MCP Server - WebMCP-native browser agent",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "webclaw": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist .turbo",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@webclaw/shared": "workspace:*",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

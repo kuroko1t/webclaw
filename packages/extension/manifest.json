@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "WebClaw",
+  "version": "0.1.0",
+  "description": "WebMCP-native browser agent - enables AI assistants to interact with web pages",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "scripting",
+    "sidePanel",
+    "nativeMessaging",
+    "alarms"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content/page-bridge.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "externally_connectable": {
+    "ids": ["*"]
+  }
+}

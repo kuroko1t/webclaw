@@ -1,0 +1,10 @@
+{
+  "name": "@webclaw/demo-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static site, no build needed'"
+  }
+}

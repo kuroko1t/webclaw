@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebMCP Todo App - Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { margin-bottom: 20px; color: #333; }
+    .badge {
+      display: inline-block;
+      background: #e94560;
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .add-form input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .add-form input:focus { border-color: #e94560; outline: none; }
+    .add-form button {
+      padding: 10px 20px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .add-form button:hover { background: #c73750; }
+    .todo-list { list-style: none; }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .todo-item.done .todo-text { text-decoration: line-through; color: #999; }
+    .todo-text { flex: 1; font-size: 14px; }
+    .todo-delete {
+      background: none;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .todo-delete:hover { color: #e94560; }
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .filter-bar button {
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .filter-bar button.active { background: #e94560; color: white; border-color: #e94560; }
+    .info {
+      margin-top: 30px;
+      padding: 16px;
+      background: #e8f4f8;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #333;
+    }
+    .info code {
+      background: #d4e9f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Todo App <span class="badge">WebMCP Enabled</span></h1>
+
+  <div class="add-form">
+    <input type="text" id="newTodo" placeholder="What needs to be done?" aria-label="New todo text">
+    <button id="addBtn">Add</button>
+  </div>
+
+  <div class="filter-bar">
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="active">Active</button>
+    <button data-filter="done">Done</button>
+  </div>
+
+  <ul class="todo-list" id="todoList"></ul>
+
+  <div class="info">
+    <strong>WebMCP Demo:</strong> This page registers tools via <code>navigator.modelContext</code>.
+    An AI agent can use <code>list_webmcp_tools</code> to discover and <code>invoke_webmcp_tool</code> to call them directly.
+  </div>
+
+  <script type="module">
+    // --- Todo App Logic ---
+    let todos = [
+      { id: 1, text: 'Learn about WebMCP', done: false },
+      { id: 2, text: 'Build a browser agent', done: false },
+      { id: 3, text: 'Take over the world', done: false },
+    ];
+    let nextId = 4;
+    let filter = 'all';
+
+    const todoList = document.getElementById('todoList');
+    const newTodoInput = document.getElementById('newTodo');
+    const addBtn = document.getElementById('addBtn');
+
+    function render() {
+      const filtered = todos.filter(t => {
+        if (filter === 'active') return !t.done;
+        if (filter === 'done') return t.done;
+        return true;
+      });
+
+      todoList.innerHTML = filtered.map(t => `
+        <li class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+          <input type="checkbox" ${t.done ? 'checked' : ''} aria-label="Toggle ${t.text}">
+          <span class="todo-text">${t.text}</span>
+          <button class="todo-delete" aria-label="Delete ${t.text}">&times;</button>
+        </li>
+      `).join('');
+    }
+
+    addBtn.addEventListener('click', () => {
+      const text = newTodoInput.value.trim();
+      if (!text) return;
+      todos.push({ id: nextId++, text, done: false });
+      newTodoInput.value = '';
+      render();
+    });
+
+    newTodoInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addBtn.click();
+    });
+
+    todoList.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox') {
+        const id = Number(e.target.closest('.todo-item').dataset.id);
+        const todo = todos.find(t => t.id === id);
+        if (todo) todo.done = !todo.done;
+        render();
+      }
+    });
+
+    todoList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('todo-delete')) {
+        const id = Number(e.target.closest('.todo-item').dataset.id);
+        todos = todos.filter(t => t.id !== id);
+        render();
+      }
+    });
+
+    document.querySelector('.filter-bar').addEventListener('click', (e) => {
+      if (e.target.dataset.filter) {
+        filter = e.target.dataset.filter;
+        document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        render();
+      }
+    });
+
+    render();
+
+    // --- WebMCP Registration ---
+    if ('modelContext' in navigator) {
+      navigator.modelContext.registerServer({
+        name: 'todo-app',
+        version: '1.0.0',
+        tools: [
+          {
+            name: 'add_todo',
+            description: 'Add a new todo item',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                text: { type: 'string', description: 'The todo text' }
+              },
+              required: ['text']
+            },
+            handler: async ({ text }) => {
+              todos.push({ id: nextId++, text, done: false });
+              render();
+              return { success: true, id: nextId - 1 };
+            }
+          },
+          {
+            name: 'toggle_todo',
+            description: 'Toggle a todo item done/undone by its ID',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                id: { type: 'number', description: 'The todo ID' }
+              },
+              required: ['id']
+            },
+            handler: async ({ id }) => {
+              const todo = todos.find(t => t.id === id);
+              if (!todo) return { success: false, error: 'Todo not found' };
+              todo.done = !todo.done;
+              render();
+              return { success: true, done: todo.done };
+            }
+          },
+          {
+            name: 'delete_todo',
+            description: 'Delete a todo item by its ID',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                id: { type: 'number', description: 'The todo ID' }
+              },
+              required: ['id']
+            },
+            handler: async ({ id }) => {
+              const before = todos.length;
+              todos = todos.filter(t => t.id !== id);
+              render();
+              return { success: todos.length < before };
+            }
+          },
+          {
+            name: 'list_todos',
+            description: 'List all todo items',
+            inputSchema: { type: 'object', properties: {} },
+            handler: async () => {
+              return { todos: todos.map(t => ({ id: t.id, text: t.text, done: t.done })) };
+            }
+          }
+        ]
+      });
+      console.log('[WebMCP] Todo app tools registered');
+    } else {
+      console.log('[WebMCP] navigator.modelContext not available (requires Chrome 146+)');
+    }
+  </script>
+</body>
+</html>
