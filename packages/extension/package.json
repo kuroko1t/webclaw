@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build && node scripts/post-build.js",
     "dev": "vite build --watch",
+    "test": "vitest run",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
@@ -13,7 +14,9 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.0.300",
+    "jsdom": "^25.0.0",
     "typescript": "^5.5.0",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
   }
 }

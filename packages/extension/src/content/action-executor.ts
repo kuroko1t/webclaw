@@ -17,7 +17,7 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
   }
 
   // Scroll into view
-  el.scrollIntoView({ behavior: 'instant', block: 'center' });
+  el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
 
   // Dispatch click events
   el.focus();
@@ -47,7 +47,7 @@ export function typeText(
     return { success: false, error: `Element ${ref} is not a text input` };
   }
 
-  el.scrollIntoView({ behavior: 'instant', block: 'center' });
+  el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
   (el as HTMLElement).focus();
 
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
@@ -97,7 +97,7 @@ export function selectOption(
     return { success: false, error: `Element ${ref} is not a select element` };
   }
 
-  el.scrollIntoView({ behavior: 'instant', block: 'center' });
+  el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
   el.focus();
 
   // Find option by value or text
