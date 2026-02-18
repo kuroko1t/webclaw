@@ -13,19 +13,21 @@ interface PendingRequest {
   timer: ReturnType<typeof setTimeout>;
 }
 
+export interface NativeMessagingStreams {
+  stdin: NodeJS.ReadableStream;
+  stdout: NodeJS.WritableStream;
+}
+
 export class NativeMessagingClient {
   private pendingRequests = new Map<string, PendingRequest>();
   private connected = false;
   private messageBuffer = Buffer.alloc(0);
+  private stdin: NodeJS.ReadableStream;
+  private stdout: NodeJS.WritableStream;
 
-  // In real implementation, we connect to Chrome's native messaging.
-  // For the MCP server, we ARE the native messaging host -
-  // Chrome connects TO us. So we read from stdin and write to stdout.
-
-  private stdin = process.stdin;
-  private stdout = process.stdout;
-
-  constructor() {
+  constructor(streams?: NativeMessagingStreams) {
+    this.stdin = streams?.stdin ?? process.stdin;
+    this.stdout = streams?.stdout ?? process.stdout;
     this.setupStdioListener();
   }
 
