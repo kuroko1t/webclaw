@@ -372,6 +372,7 @@ export function takeSnapshot(
 
 /** Resolve a @ref to its DOM element */
 export function resolveRef(ref: string): Element | null {
+  if (!ref || !ref.startsWith('@e')) return null;
   return refMap.get(ref) ?? null;
 }
 
