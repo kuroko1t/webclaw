@@ -1,6 +1,15 @@
 # WebClaw
 
-The first WebMCP-native browser agent. Enables AI assistants like Claude to interact with web pages through a Chrome extension and MCP protocol.
+[![CI](https://github.com/kuroko1t/hermitclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/kuroko1t/hermitclaw/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/webclaw)](https://www.npmjs.com/package/webclaw)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+The first **WebMCP-native** browser agent. Enables AI assistants like Claude to interact with web pages through a Chrome extension and MCP protocol.
+
+<!-- TODO: デモGIFを撮影して docs/demo.gif に配置後、以下のコメントを外す -->
+<!-- <p align="center">
+  <img src="docs/demo.gif" alt="WebClaw Demo" width="720">
+</p> -->
 
 ## What is WebClaw?
 
@@ -11,22 +20,30 @@ WebClaw bridges AI assistants and the browser using two approaches:
 
 ## Architecture
 
-```
-LLM (Claude Desktop)
-        |
-   MCP Protocol (stdio)
-        |
-  MCP Server (Node.js)        <- packages/mcp-server
-        |
-  Native Messaging (stdio, 32-bit length-prefixed JSON)
-        |
-  Chrome Extension (MV3)      <- packages/extension
-   ├── Service Worker (message hub)
-   ├── Side Panel (agent activity log)
-   └── Content Script (per tab)
-        ├── WebMCP Discovery (native + auto-synthesis)
-        ├── Compact Snapshot (@ref A11y tree)
-        └── Action Executor (click, type, select)
+```mermaid
+flowchart TB
+    LLM["LLM (Claude Desktop)"]
+    MCP["MCP Server (Node.js)<br/><code>packages/mcp-server</code>"]
+    EXT["Chrome Extension (MV3)<br/><code>packages/extension</code>"]
+    SW["Service Worker<br/>message hub"]
+    SP["Side Panel<br/>agent activity log"]
+    CS["Content Script<br/>(per tab)"]
+    WD["WebMCP Discovery<br/>native + auto-synthesis"]
+    SN["Compact Snapshot<br/>@ref A11y tree"]
+    AE["Action Executor<br/>click, type, select"]
+
+    LLM -- "MCP Protocol (stdio)" --> MCP
+    MCP -- "Native Messaging<br/>(length-prefixed JSON)" --> EXT
+    EXT --- SW
+    EXT --- SP
+    EXT --- CS
+    CS --- WD
+    CS --- SN
+    CS --- AE
+
+    style LLM fill:#f9f,stroke:#333
+    style MCP fill:#bbf,stroke:#333
+    style EXT fill:#bfb,stroke:#333
 ```
 
 ## MCP Tools
@@ -98,6 +115,11 @@ Config file locations:
 ### 5. Verify
 
 Restart Claude Desktop. Ask it to navigate to a website - you should see activity in the extension's Side Panel.
+
+<!-- TODO: Side Panelのスクリーンショットを撮影して docs/sidepanel.png に配置後、以下のコメントを外す -->
+<!-- <p align="center">
+  <img src="docs/sidepanel.png" alt="WebClaw Side Panel" width="360">
+</p> -->
 
 ## Usage Example
 
