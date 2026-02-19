@@ -271,9 +271,11 @@ function getVisibility(el: Element): 'visible' | 'hidden' | 'self-hidden' {
   const style = getComputedStyle(el);
   // display:none hides the entire subtree — no children are rendered
   if (style.display === 'none') return 'hidden';
-  // visibility:hidden and opacity:0 hide the element itself,
+  // opacity:0 hides entire subtree — children cannot override parent opacity
+  if (style.opacity === '0') return 'hidden';
+  // visibility:hidden hides the element itself,
   // but children can override with visibility:visible
-  if (style.visibility === 'hidden' || style.opacity === '0') return 'self-hidden';
+  if (style.visibility === 'hidden') return 'self-hidden';
   return 'visible';
 }
 

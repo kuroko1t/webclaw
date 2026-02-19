@@ -42,9 +42,10 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
   const clientY = rect.top + rect.height / 2;
   const mouseOpts = { bubbles: true, cancelable: true, clientX, clientY };
 
-  // Dispatch click events
+  // Dispatch click events (focus first, then mouse sequence)
   if ('focus' in el && typeof el.focus === 'function') {
     el.focus();
+    el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
   }
   el.dispatchEvent(new MouseEvent('mousedown', mouseOpts));
   el.dispatchEvent(new MouseEvent('mouseup', mouseOpts));
