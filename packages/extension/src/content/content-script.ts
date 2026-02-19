@@ -7,9 +7,9 @@
  * - WebMCP discovery and invocation
  * - Communication with Service Worker
  */
-import { takeSnapshot, resolveRef, getCurrentSnapshotId } from './snapshot-engine';
+import { takeSnapshot } from './snapshot-engine';
 import { clickElement, typeText, selectOption, invokeWebMCPTool } from './action-executor';
-import { discoverWebMCPTools, getCachedTools } from './webmcp-discovery';
+import { discoverWebMCPTools } from './webmcp-discovery';
 
 // Inject page bridge script into MAIN world for WebMCP access
 injectPageBridge();
