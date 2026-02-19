@@ -31,7 +31,7 @@ const INTERACTIVE_SELECTORS = [
   '[role="searchbox"]',
   '[role="slider"]',
   '[role="spinbutton"]',
-  '[contenteditable="true"]',
+  '[contenteditable]:not([contenteditable="false"])',
   'summary',
 ].join(',');
 

@@ -50,10 +50,13 @@ export function typeText(
     return { success: false, error: `Element not found for ref ${ref}` };
   }
 
+  const ceAttr = el.getAttribute('contenteditable');
+  const isContentEditable = ceAttr !== null && ceAttr !== 'false';
+
   if (
     !(el instanceof HTMLInputElement) &&
     !(el instanceof HTMLTextAreaElement) &&
-    !el.getAttribute('contenteditable')
+    !isContentEditable
   ) {
     return { success: false, error: `Element ${ref} is not a text input` };
   }
@@ -123,6 +126,12 @@ export function selectOption(
   let found = false;
   for (const option of el.options) {
     if (option.value === value || option.textContent?.trim() === value) {
+      if (option.disabled) {
+        return {
+          success: false,
+          error: `Option "${value}" is disabled in select ${ref}`,
+        };
+      }
       el.value = option.value;
       found = true;
       break;
