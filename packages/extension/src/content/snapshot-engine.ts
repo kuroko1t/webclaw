@@ -161,11 +161,7 @@ function getRole(el: Element): string {
 
 /** Get the accessible name for an element */
 function getAccessibleName(el: Element): string {
-  // aria-label
-  const ariaLabel = el.getAttribute('aria-label');
-  if (ariaLabel) return ariaLabel.trim();
-
-  // aria-labelledby
+  // aria-labelledby (highest priority per W3C accname spec step 2A)
   const labelledBy = el.getAttribute('aria-labelledby');
   if (labelledBy) {
     const labels = labelledBy
@@ -174,6 +170,10 @@ function getAccessibleName(el: Element): string {
       .filter(Boolean);
     if (labels.length) return labels.join(' ');
   }
+
+  // aria-label (step 2B)
+  const ariaLabel = el.getAttribute('aria-label');
+  if (ariaLabel) return ariaLabel.trim();
 
   // <label> for inputs
   if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
@@ -344,6 +344,14 @@ function walkDOM(
     if (el.type === 'checkbox' || el.type === 'radio') {
       node.checked = el.checked;
     }
+  } else {
+    // Capture aria-checked for custom checkboxes/radios/switches
+    const ariaChecked = el.getAttribute('aria-checked');
+    if (ariaChecked === 'true') {
+      node.checked = true;
+    } else if (ariaChecked === 'false') {
+      node.checked = false;
+    }
   }
 
   if (
@@ -371,6 +379,13 @@ function walkDOM(
     node.selected = true;
   } else if (ariaSelected === 'false') {
     node.selected = false;
+  }
+
+  const ariaPressed = el.getAttribute('aria-pressed');
+  if (ariaPressed === 'true') {
+    node.pressed = true;
+  } else if (ariaPressed === 'false') {
+    node.pressed = false;
   }
 
   if (children.length > 0) node.children = children;
@@ -414,6 +429,10 @@ function formatNode(node: SnapshotNode, indent: number): string {
 
   if (node.selected !== undefined) {
     line += node.selected ? ' (selected)' : ' (unselected)';
+  }
+
+  if (node.pressed !== undefined) {
+    line += node.pressed ? ' (pressed)' : ' (unpressed)';
   }
 
   lines.push(line);

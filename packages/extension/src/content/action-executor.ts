@@ -28,6 +28,11 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
     return { success: false, error: `Element ${ref} is disabled` };
   }
 
+  // Check aria-disabled for non-HTML elements (e.g. SVG with role="button")
+  if (!(el instanceof HTMLElement) && el.getAttribute('aria-disabled') === 'true') {
+    return { success: false, error: `Element ${ref} is disabled` };
+  }
+
   // Scroll into view
   (el as HTMLElement).scrollIntoView?.({ behavior: 'instant', block: 'center' });
 

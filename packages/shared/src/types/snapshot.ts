@@ -12,6 +12,7 @@ export interface SnapshotNode {
   selected?: boolean;
   disabled?: boolean;
   expanded?: boolean;
+  pressed?: boolean;
   children?: SnapshotNode[];
 }
 

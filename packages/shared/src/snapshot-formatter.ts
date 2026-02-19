@@ -42,6 +42,18 @@ function formatNode(
     line += ' (disabled)';
   }
 
+  if (node.expanded !== undefined) {
+    line += node.expanded ? ' (expanded)' : ' (collapsed)';
+  }
+
+  if (node.selected !== undefined) {
+    line += node.selected ? ' (selected)' : ' (unselected)';
+  }
+
+  if (node.pressed !== undefined) {
+    line += node.pressed ? ' (pressed)' : ' (unpressed)';
+  }
+
   lines.push(line);
 
   if (node.children) {
