@@ -24,7 +24,7 @@ jobs:
 
       - run: pnpm build
 
-      - run: turbo run test:unit
+      - run: pnpm exec turbo run test:unit
 
   e2e:
     name: E2E Tests (${{ github.event_name == 'pull_request' && 'full' || 'smoke' }})
