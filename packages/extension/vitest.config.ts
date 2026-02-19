@@ -6,6 +6,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
+    environmentMatchGlobs: [
+      ['src/__tests__/e2e/**', 'node'],
+    ],
   },
   resolve: {
     alias: {

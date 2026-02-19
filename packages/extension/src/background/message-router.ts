@@ -85,15 +85,23 @@ export class MessageRouter {
       return;
     }
 
-    // Forward activity logs to side panel
-    if (message.action === 'log') {
-      chrome.runtime.sendMessage({
-        channel: 'webclaw-sidepanel-update',
-        type: 'activity',
-        data: message.data,
-        tabId,
-      }).catch(() => {});
-      sendResponse({ ok: true });
+    switch (message.action) {
+      case 'log':
+        chrome.runtime.sendMessage({
+          channel: 'webclaw-sidepanel-update',
+          type: 'activity',
+          data: message.data,
+          tabId,
+        }).catch(() => {});
+        sendResponse({ ok: true });
+        break;
+
+      case 'getTabId':
+        sendResponse(tabId);
+        break;
+
+      default:
+        sendResponse({ error: `Unknown content action: ${message.action}` });
     }
   }
 
