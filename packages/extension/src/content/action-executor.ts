@@ -133,7 +133,11 @@ export function selectOption(
   let found = false;
   for (const option of el.options) {
     if (option.value === value || option.textContent?.trim() === value) {
-      if (option.disabled) {
+      // Check option's own disabled state and parent optgroup's disabled state
+      const optgroupDisabled =
+        option.parentElement instanceof HTMLOptGroupElement &&
+        option.parentElement.disabled;
+      if (option.disabled || optgroupDisabled) {
         return {
           success: false,
           error: `Option "${value}" is disabled in select ${ref}`,

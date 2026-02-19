@@ -173,9 +173,11 @@ function getAccessibleName(el: Element): string {
     return text.length > 80 ? text.slice(0, 77) + '...' : text;
   }
 
-  // Text content for ARIA live/text-bearing roles (alert, status, tooltip, etc.)
+  // Text content for leaf elements with a role (explicit ARIA or implicit structural)
+  // Covers table cells, list items, definitions, alert/status, etc.
   const ariaRole = el.getAttribute('role');
-  if (ariaRole && !el.children.length) {
+  const hasRole = ariaRole || el.tagName in STRUCTURAL_ROLES;
+  if (hasRole && !el.children.length) {
     const text = el.textContent?.trim() ?? '';
     if (text) return text.length > 80 ? text.slice(0, 77) + '...' : text;
   }
@@ -323,6 +325,21 @@ function walkDOM(
     node.disabled = true;
   }
 
+  // Capture ARIA state attributes
+  const ariaExpanded = el.getAttribute('aria-expanded');
+  if (ariaExpanded === 'true') {
+    node.expanded = true;
+  } else if (ariaExpanded === 'false') {
+    node.expanded = false;
+  }
+
+  const ariaSelected = el.getAttribute('aria-selected');
+  if (ariaSelected === 'true') {
+    node.selected = true;
+  } else if (ariaSelected === 'false') {
+    node.selected = false;
+  }
+
   if (children.length > 0) node.children = children;
 
   return node;
@@ -356,6 +373,14 @@ function formatNode(node: SnapshotNode, indent: number): string {
 
   if (node.disabled) {
     line += ' (disabled)';
+  }
+
+  if (node.expanded !== undefined) {
+    line += node.expanded ? ' (expanded)' : ' (collapsed)';
+  }
+
+  if (node.selected !== undefined) {
+    line += node.selected ? ' (selected)' : ' (unselected)';
   }
 
   lines.push(line);
