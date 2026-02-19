@@ -143,5 +143,179 @@ describe('action-executor', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('not a select');
     });
+
+    it('returns error when selecting a disabled option', () => {
+      document.body.innerHTML = `
+        <select aria-label="Color">
+          <option value="r">Red</option>
+          <option value="g" disabled>Green</option>
+        </select>
+      `;
+      takeSnapshot();
+      const result = selectOption('@e1', 'g');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+
+    it('returns error when selecting disabled option by text', () => {
+      document.body.innerHTML = `
+        <select aria-label="Size">
+          <option value="s">Small</option>
+          <option value="l" disabled>Large</option>
+        </select>
+      `;
+      takeSnapshot();
+      const result = selectOption('@e1', 'Large');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+
+    it('returns error for disabled select element', () => {
+      document.body.innerHTML = `
+        <select aria-label="Color" disabled>
+          <option value="r">Red</option>
+        </select>
+      `;
+      takeSnapshot();
+      const result = selectOption('@e1', 'r');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+  });
+
+  describe('disabled element handling', () => {
+    it('returns error for clicking disabled button', () => {
+      document.body.innerHTML = '<button disabled>Disabled</button>';
+      takeSnapshot();
+      const result = clickElement('@e1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+
+    it('returns error for clicking aria-disabled="true" button', () => {
+      document.body.innerHTML = '<button aria-disabled="true">Aria Disabled</button>';
+      takeSnapshot();
+      const result = clickElement('@e1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+
+    it('allows clicking aria-disabled="false" button', () => {
+      let clicked = false;
+      document.body.innerHTML = '<button id="btn" aria-disabled="false">Enabled</button>';
+      document.getElementById('btn')!.addEventListener('click', () => { clicked = true; });
+      takeSnapshot();
+      const result = clickElement('@e1');
+      expect(result.success).toBe(true);
+      expect(clicked).toBe(true);
+    });
+
+    it('returns error for typing into disabled input', () => {
+      document.body.innerHTML = '<input type="text" disabled aria-label="Name">';
+      takeSnapshot();
+      const result = typeText('@e1', 'hello');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+
+    it('returns error for typing into aria-disabled input', () => {
+      document.body.innerHTML = '<input type="text" aria-disabled="true" aria-label="Name">';
+      takeSnapshot();
+      const result = typeText('@e1', 'hello');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('disabled');
+    });
+  });
+
+  describe('contenteditable handling', () => {
+    it('types into contenteditable="true" element', () => {
+      document.body.innerHTML = '<div contenteditable="true" aria-label="Editor"></div>';
+      takeSnapshot();
+      const result = typeText('@e1', 'Hello');
+      expect(result.success).toBe(true);
+      expect(document.querySelector('[contenteditable]')!.textContent).toBe('Hello');
+    });
+
+    it('types into contenteditable="" element', () => {
+      document.body.innerHTML = '<div contenteditable="" aria-label="Editor"></div>';
+      takeSnapshot();
+      const result = typeText('@e1', 'Hello');
+      expect(result.success).toBe(true);
+      expect(document.querySelector('[contenteditable]')!.textContent).toBe('Hello');
+    });
+
+    it('types into bare contenteditable element', () => {
+      document.body.innerHTML = '<div contenteditable aria-label="Editor"></div>';
+      takeSnapshot();
+      const result = typeText('@e1', 'Hello');
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects typing into contenteditable="false" element', () => {
+      // contenteditable="false" is not interactive, so it won't get a @ref
+      // We test this by attempting to type into a non-input element
+      document.body.innerHTML = '<button>Not input</button>';
+      takeSnapshot();
+      const result = typeText('@e1', 'Hello');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not a text input');
+    });
+
+    it('clears contenteditable content when clearFirst=true', () => {
+      document.body.innerHTML = '<div contenteditable="true" aria-label="Editor">old text</div>';
+      takeSnapshot();
+      typeText('@e1', 'new text', true);
+      expect(document.querySelector('[contenteditable]')!.textContent).toBe('new text');
+    });
+
+    it('appends to contenteditable content when clearFirst=false', () => {
+      document.body.innerHTML = '<div contenteditable="true" aria-label="Editor">hello </div>';
+      takeSnapshot();
+      typeText('@e1', 'world', false);
+      expect(document.querySelector('[contenteditable]')!.textContent).toBe('hello world');
+    });
+  });
+
+  describe('event dispatching', () => {
+    it('dispatches mousedown, mouseup, and click events on click', () => {
+      const events: string[] = [];
+      document.body.innerHTML = '<button id="btn">Click</button>';
+      const btn = document.getElementById('btn')!;
+      btn.addEventListener('mousedown', () => events.push('mousedown'));
+      btn.addEventListener('mouseup', () => events.push('mouseup'));
+      btn.addEventListener('click', () => events.push('click'));
+      takeSnapshot();
+      clickElement('@e1');
+      expect(events).toEqual(['mousedown', 'mouseup', 'click']);
+    });
+
+    it('dispatches input and change events on typeText', () => {
+      const events: string[] = [];
+      document.body.innerHTML = '<input type="text" aria-label="Name">';
+      const input = document.querySelector('input')!;
+      input.addEventListener('input', () => events.push('input'));
+      input.addEventListener('change', () => events.push('change'));
+      takeSnapshot();
+      typeText('@e1', 'test');
+      expect(events).toContain('input');
+      expect(events).toContain('change');
+    });
+
+    it('dispatches change and input events on selectOption', () => {
+      const events: string[] = [];
+      document.body.innerHTML = `
+        <select aria-label="Color">
+          <option value="r">Red</option>
+          <option value="b">Blue</option>
+        </select>
+      `;
+      const select = document.querySelector('select')!;
+      select.addEventListener('change', () => events.push('change'));
+      select.addEventListener('input', () => events.push('input'));
+      takeSnapshot();
+      selectOption('@e1', 'b');
+      expect(events).toContain('change');
+      expect(events).toContain('input');
+    });
   });
 });

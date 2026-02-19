@@ -43,28 +43,31 @@ function addLogEntry(entry: LogEntry): void {
   statusEl.textContent = 'Active';
   statusEl.classList.add('connected');
 
-  // Create log element
+  // Create log element using DOM APIs to prevent XSS
   const el = document.createElement('div');
-  el.className = `log-entry action-${entry.action}`;
+  el.className = 'log-entry';
 
-  const time = new Date(entry.timestamp).toLocaleTimeString();
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'timestamp';
+  timeSpan.textContent = new Date(entry.timestamp).toLocaleTimeString();
+  el.appendChild(timeSpan);
 
-  let details = '';
+  const actionSpan = document.createElement('span');
+  actionSpan.className = 'action-name';
+  actionSpan.textContent = entry.action;
+  el.appendChild(actionSpan);
+
   const detailKeys = Object.keys(entry).filter(
     (k) => !['action', 'timestamp', 'url'].includes(k)
   );
   if (detailKeys.length > 0) {
-    const detailParts = detailKeys.map(
-      (k) => `${k}: ${JSON.stringify(entry[k])}`
-    );
-    details = `<div class="details">${detailParts.join(' | ')}</div>`;
+    const detailsDiv = document.createElement('div');
+    detailsDiv.className = 'details';
+    detailsDiv.textContent = detailKeys
+      .map((k) => `${k}: ${JSON.stringify(entry[k])}`)
+      .join(' | ');
+    el.appendChild(detailsDiv);
   }
-
-  el.innerHTML = `
-    <span class="timestamp">${time}</span>
-    <span class="action-name">${entry.action}</span>
-    ${details}
-  `;
 
   logContainer.appendChild(el);
   el.scrollIntoView({ behavior: 'smooth' });

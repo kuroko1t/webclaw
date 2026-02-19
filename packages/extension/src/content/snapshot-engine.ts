@@ -95,7 +95,7 @@ function getRole(el: Element): string {
   // Interactive elements
   if (tag === 'A' && el.hasAttribute('href')) return 'link';
   if (tag === 'BUTTON' || tag === 'SUMMARY') return 'button';
-  if (tag === 'SELECT') return 'combobox';
+  if (tag === 'SELECT') return (el as HTMLSelectElement).multiple ? 'listbox' : 'combobox';
   if (tag === 'TEXTAREA') return 'textbox';
   if (tag === 'INPUT') {
     const type = (el as HTMLInputElement).type;
@@ -203,6 +203,12 @@ function getValue(el: Element): string | undefined {
   }
   if (el instanceof HTMLTextAreaElement && el.value) return el.value;
   if (el instanceof HTMLSelectElement) {
+    if (el.multiple) {
+      const selected = Array.from(el.selectedOptions)
+        .map(o => o.textContent?.trim())
+        .filter(Boolean);
+      return selected.length > 0 ? selected.join(', ') : undefined;
+    }
     const selected = el.selectedOptions[0];
     if (selected) return selected.textContent?.trim();
   }

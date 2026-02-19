@@ -30,11 +30,17 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
   // Scroll into view
   el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
 
+  // Get element center coordinates for realistic mouse events
+  const rect = el.getBoundingClientRect();
+  const clientX = rect.left + rect.width / 2;
+  const clientY = rect.top + rect.height / 2;
+  const mouseOpts = { bubbles: true, cancelable: true, clientX, clientY };
+
   // Dispatch click events
   el.focus();
-  el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-  el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-  el.click();
+  el.dispatchEvent(new MouseEvent('mousedown', mouseOpts));
+  el.dispatchEvent(new MouseEvent('mouseup', mouseOpts));
+  el.dispatchEvent(new MouseEvent('click', mouseOpts));
 
   return { success: true };
 }
@@ -67,6 +73,7 @@ export function typeText(
 
   el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
   (el as HTMLElement).focus();
+  el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
 
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
     if (clearFirst) {
@@ -132,7 +139,13 @@ export function selectOption(
           error: `Option "${value}" is disabled in select ${ref}`,
         };
       }
-      el.value = option.value;
+      // For select[multiple], use option.selected to preserve existing selections.
+      // For single select, el.value is sufficient and deselects others as expected.
+      if (el.multiple) {
+        option.selected = true;
+      } else {
+        el.value = option.value;
+      }
       found = true;
       break;
     }
