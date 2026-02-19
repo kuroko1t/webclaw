@@ -24,6 +24,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Install Chrome for Testing
+        run: npx @puppeteer/browsers install chrome@stable --path /tmp/chrome-for-testing
+
       - run: pnpm build
 
       - run: pnpm test
+        timeout-minutes: 10
