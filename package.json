@@ -6,9 +6,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kuroko1t/hermitclaw"
+    "url": "https://github.com/kuroko1t/webclaw"
   },
-  "homepage": "https://github.com/kuroko1t/hermitclaw#readme",
+  "homepage": "https://github.com/kuroko1t/webclaw#readme",
   "keywords": [
     "webmcp",
     "mcp",

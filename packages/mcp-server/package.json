@@ -1,15 +1,15 @@
 {
-  "name": "webclaw",
+  "name": "webclaw-mcp",
   "version": "0.1.0",
   "description": "WebClaw MCP Server - WebMCP-native browser agent for Chrome",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kuroko1t/hermitclaw",
+    "url": "https://github.com/kuroko1t/webclaw",
     "directory": "packages/mcp-server"
   },
-  "homepage": "https://github.com/kuroko1t/hermitclaw#readme",
+  "homepage": "https://github.com/kuroko1t/webclaw#readme",
   "keywords": [
     "webmcp",
     "mcp",
@@ -21,7 +21,7 @@
     "model-context-protocol"
   ],
   "bin": {
-    "webclaw": "dist/cli.js"
+    "webclaw-mcp": "dist/cli.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@webclaw/shared": "workspace:*",
+    "webclaw-shared": "workspace:*",
     "zod": "^3.23.0"
   },
   "devDependencies": {

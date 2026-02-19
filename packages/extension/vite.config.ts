@@ -93,7 +93,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@webclaw/shared': resolve(__dirname, '../shared/src/index.ts'),
+      'webclaw-shared': resolve(__dirname, '../shared/src/index.ts'),
     },
   },
 });

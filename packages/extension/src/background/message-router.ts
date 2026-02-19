@@ -12,8 +12,8 @@ import type {
   ListWebMCPToolsParams,
   InvokeWebMCPToolParams,
   ScreenshotParams,
-} from '@webclaw/shared';
-import { createResponse, createError } from '@webclaw/shared';
+} from 'webclaw-shared';
+import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
 
 export class MessageRouter {

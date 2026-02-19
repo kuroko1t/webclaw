@@ -8,7 +8,7 @@
 import {
   NATIVE_MESSAGING_HOST,
   KEEPALIVE_INTERVAL_MS,
-} from '@webclaw/shared';
+} from 'webclaw-shared';
 import { NativeMessagingBridge } from './native-messaging-bridge';
 import { TabManager } from './tab-manager';
 import { MessageRouter } from './message-router';

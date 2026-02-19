@@ -4,8 +4,8 @@
  * Native Messaging uses 32-bit length-prefixed JSON messages over stdio.
  * The host process communicates with the Chrome Extension Service Worker.
  */
-import type { BridgeMessage, BridgeMethod } from '@webclaw/shared';
-import { createRequest, isBridgeMessage } from '@webclaw/shared';
+import type { BridgeMessage, BridgeMethod } from 'webclaw-shared';
+import { createRequest, isBridgeMessage } from 'webclaw-shared';
 
 interface PendingRequest {
   resolve: (value: BridgeMessage) => void;

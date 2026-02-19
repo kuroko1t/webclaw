@@ -8,7 +8,7 @@ import { writeFileSync, mkdirSync, existsSync, chmodSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { platform, env } from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { NATIVE_MESSAGING_HOST } from '@webclaw/shared';
+import { NATIVE_MESSAGING_HOST } from 'webclaw-shared';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -113,7 +113,7 @@ function outputClaudeDesktopConfig(): void {
     mcpServers: {
       webclaw: {
         command: 'npx',
-        args: ['-y', 'webclaw'],
+        args: ['-y', 'webclaw-mcp'],
       },
     },
   };

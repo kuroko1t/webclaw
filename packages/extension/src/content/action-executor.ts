@@ -3,7 +3,7 @@
  * Handles both WebMCP invocation and DOM fallback operations.
  */
 import { resolveRef } from './snapshot-engine';
-import { PAGE_BRIDGE_CHANNEL } from '@webclaw/shared';
+import { PAGE_BRIDGE_CHANNEL } from 'webclaw-shared';
 
 /** Check if an element is disabled (native :disabled or aria-disabled="true") */
 function isElementDisabled(el: HTMLElement): boolean {

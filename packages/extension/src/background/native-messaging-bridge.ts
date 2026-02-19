@@ -2,7 +2,7 @@
  * Native Messaging bridge between MCP Server and Service Worker.
  * Handles 32-bit length-prefixed JSON messages over stdio.
  */
-import type { BridgeMessage, BridgeRequest } from '@webclaw/shared';
+import type { BridgeMessage, BridgeRequest } from 'webclaw-shared';
 import type { MessageRouter } from './message-router';
 
 export class NativeMessagingBridge {

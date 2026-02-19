@@ -10,7 +10,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@webclaw/shared": "workspace:*"
+    "webclaw-shared": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.300",

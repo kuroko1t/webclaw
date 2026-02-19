@@ -27,12 +27,12 @@ jobs:
 
       - run: pnpm test
 
-      - name: Publish @webclaw/shared
-        run: pnpm --filter @webclaw/shared publish --no-git-checks --access public
+      - name: Publish webclaw-shared
+        run: pnpm --filter webclaw-shared publish --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish webclaw
-        run: pnpm --filter webclaw publish --no-git-checks --access public
+      - name: Publish webclaw-mcp
+        run: pnpm --filter webclaw-mcp publish --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,7 +1,7 @@
 # WebClaw
 
-[![CI](https://github.com/kuroko1t/hermitclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/kuroko1t/hermitclaw/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/webclaw)](https://www.npmjs.com/package/webclaw)
+[![CI](https://github.com/kuroko1t/webclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/kuroko1t/webclaw/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/webclaw-mcp)](https://www.npmjs.com/package/webclaw-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 The first **WebMCP-native** browser agent. Enables AI assistants like Claude to interact with web pages through a Chrome extension and MCP protocol.
@@ -70,8 +70,8 @@ flowchart TB
 ### 1. Build
 
 ```bash
-git clone https://github.com/kuroko1t/hermitclaw.git
-cd hermitclaw
+git clone https://github.com/kuroko1t/webclaw.git
+cd webclaw
 pnpm install
 pnpm build
 ```
@@ -87,7 +87,7 @@ pnpm build
 ### 3. Register Native Messaging Host
 
 ```bash
-npx webclaw install
+npx webclaw-mcp install
 ```
 
 This writes the Native Messaging host manifest and prints the Claude Desktop config. After running, update the `allowed_origins` in the host manifest with your extension ID.
@@ -101,7 +101,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "webclaw": {
       "command": "npx",
-      "args": ["-y", "webclaw"]
+      "args": ["-y", "webclaw-mcp"]
     }
   }
 }

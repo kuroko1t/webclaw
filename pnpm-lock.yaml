@@ -19,7 +19,7 @@ importers:
 
   packages/extension:
     dependencies:
-      '@webclaw/shared':
+      webclaw-shared:
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -47,7 +47,7 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.26.0(zod@3.25.76)
-      '@webclaw/shared':
+      webclaw-shared:
         specifier: workspace:*
         version: link:../shared
       zod:
