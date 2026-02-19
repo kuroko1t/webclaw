@@ -9,6 +9,7 @@ export default defineConfig({
     environmentMatchGlobs: [
       ['src/__tests__/e2e/**', 'node'],
     ],
+    fileParallelism: false,
   },
   resolve: {
     alias: {

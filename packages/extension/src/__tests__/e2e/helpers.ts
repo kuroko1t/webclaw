@@ -92,7 +92,7 @@ export async function getServiceWorker(browser: Browser): Promise<WebWorker> {
     (t) =>
       t.type() === 'service_worker' &&
       t.url().includes('background/service-worker'),
-    { timeout: 10_000 },
+    { timeout: 20_000 },
   );
   const worker = await swTarget.worker();
   if (!worker) throw new Error('Could not get service worker');
@@ -107,7 +107,7 @@ export async function getExtensionId(browser: Browser): Promise<string> {
     (t) =>
       t.type() === 'service_worker' &&
       t.url().includes('background/service-worker'),
-    { timeout: 10_000 },
+    { timeout: 20_000 },
   );
   const url = swTarget.url();
   const match = url.match(/chrome-extension:\/\/([a-z]+)\//);

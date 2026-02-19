@@ -90,7 +90,7 @@ async function handleAction(message: {
 /** Inject the page bridge script into MAIN world */
 function injectPageBridge(): void {
   const script = document.createElement('script');
-  script.src = chrome.runtime.getURL('src/content/page-bridge.js');
+  script.src = chrome.runtime.getURL('content/page-bridge.js');
   script.type = 'module';
   (document.head || document.documentElement).appendChild(script);
   script.onload = () => script.remove();

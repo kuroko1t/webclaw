@@ -19,7 +19,12 @@ const TEST_HTML = `<!DOCTYPE html>
 <body>
   <h1>Snapshot Test</h1>
   <button id="btn1">Click Me</button>
+  <button id="btn-disabled" disabled>Disabled Btn</button>
   <input id="input1" type="text" placeholder="Enter text" aria-label="Name input">
+  <input id="input2" type="text" value="existing" aria-label="Append input">
+  <input id="chk1" type="checkbox" aria-label="Agree checkbox">
+  <input id="rad1" type="radio" name="choice" value="a" aria-label="Choice A" checked>
+  <input id="rad2" type="radio" name="choice" value="b" aria-label="Choice B">
   <select id="select1" aria-label="Color picker">
     <option value="red">Red</option>
     <option value="green">Green</option>
@@ -128,6 +133,56 @@ describe('Snapshot + Actions E2E', () => {
       return (document.getElementById('select1') as HTMLSelectElement)?.value;
     });
     expect(selectedValue).toBe('blue');
+  }, 15_000);
+
+  it('should append text with clearFirst=false', async () => {
+    const snapshot = await sendToContentScript(browser, page, { action: 'snapshot' });
+    const inputRef = extractRef(snapshot.text, 'Append input');
+    expect(inputRef).toBeTruthy();
+
+    const result = await sendToContentScript(browser, page, {
+      action: 'typeText',
+      ref: inputRef,
+      text: ' appended',
+      clearFirst: false,
+    });
+    expect(result.success).toBe(true);
+
+    const value = await page.evaluate(() => {
+      return (document.getElementById('input2') as HTMLInputElement)?.value;
+    });
+    expect(value).toBe('existing appended');
+  }, 15_000);
+
+  it('should include disabled attribute in snapshot', async () => {
+    const snapshot = await sendToContentScript(browser, page, { action: 'snapshot' });
+
+    // Find the line for the disabled button
+    const lines = snapshot.text.split('\n');
+    const disabledLine = lines.find((l: string) => l.includes('Disabled Btn'));
+    expect(disabledLine).toBeTruthy();
+    expect(disabledLine).toContain('(disabled)');
+  }, 15_000);
+
+  it('should include checked/unchecked state for checkbox in snapshot', async () => {
+    const snapshot = await sendToContentScript(browser, page, { action: 'snapshot' });
+
+    const lines = snapshot.text.split('\n');
+    const checkboxLine = lines.find((l: string) => l.includes('Agree checkbox'));
+    expect(checkboxLine).toBeTruthy();
+    expect(checkboxLine).toContain('(unchecked)');
+  }, 15_000);
+
+  it('should include checked state for radio buttons in snapshot', async () => {
+    const snapshot = await sendToContentScript(browser, page, { action: 'snapshot' });
+
+    const lines = snapshot.text.split('\n');
+    const radioALine = lines.find((l: string) => l.includes('Choice A'));
+    const radioBLine = lines.find((l: string) => l.includes('Choice B'));
+    expect(radioALine).toBeTruthy();
+    expect(radioBLine).toBeTruthy();
+    expect(radioALine).toContain('(checked)');
+    expect(radioBLine).toContain('(unchecked)');
   }, 15_000);
 });
 

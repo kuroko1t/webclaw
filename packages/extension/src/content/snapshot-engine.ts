@@ -163,6 +163,13 @@ function getAccessibleName(el: Element): string {
     return text.length > 80 ? text.slice(0, 77) + '...' : text;
   }
 
+  // Text content for ARIA live/text-bearing roles (alert, status, tooltip, etc.)
+  const ariaRole = el.getAttribute('role');
+  if (ariaRole && !el.children.length) {
+    const text = el.textContent?.trim() ?? '';
+    if (text) return text.length > 80 ? text.slice(0, 77) + '...' : text;
+  }
+
   return '';
 }
 
@@ -228,6 +235,7 @@ function walkDOM(
   options: SnapshotOptions
 ): SnapshotNode | null {
   if (SKIP_TAGS.has(el.tagName)) return null;
+  if (el.getAttribute('aria-hidden') === 'true') return null;
   if (!isVisible(el)) return null;
 
   const role = getRole(el);
@@ -276,7 +284,7 @@ function walkDOM(
       el instanceof HTMLButtonElement ||
       el instanceof HTMLSelectElement ||
       el instanceof HTMLTextAreaElement) &&
-    el.disabled
+    el.matches(':disabled')
   ) {
     node.disabled = true;
   }
@@ -373,7 +381,9 @@ export function takeSnapshot(
 /** Resolve a @ref to its DOM element */
 export function resolveRef(ref: string): Element | null {
   if (!ref || !ref.startsWith('@e')) return null;
-  return refMap.get(ref) ?? null;
+  const el = refMap.get(ref);
+  if (!el || !el.isConnected) return null;
+  return el;
 }
 
 /** Get the current snapshot ID */

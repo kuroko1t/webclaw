@@ -16,6 +16,10 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
     return { success: false, error: `Element ${ref} is not an HTMLElement` };
   }
 
+  if (el.matches(':disabled')) {
+    return { success: false, error: `Element ${ref} is disabled` };
+  }
+
   // Scroll into view
   el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
 
