@@ -32,6 +32,7 @@ const INTERACTIVE_SELECTORS = [
   '[role="slider"]',
   '[role="spinbutton"]',
   '[contenteditable="true"]',
+  'summary',
 ].join(',');
 
 /** Elements to skip entirely */
@@ -74,13 +75,20 @@ const STRUCTURAL_ROLES: Record<string, string> = {
   SUMMARY: 'button',
   FIELDSET: 'group',
   LEGEND: 'legend',
+  OUTPUT: 'status',
+  PROGRESS: 'progressbar',
+  METER: 'meter',
 };
 
 /** Get the accessible role for an element */
 function getRole(el: Element): string {
   // Explicit ARIA role
   const ariaRole = el.getAttribute('role');
-  if (ariaRole) return ariaRole;
+  if (ariaRole) {
+    // presentation/none mean "remove semantic role" — treat as no role
+    if (ariaRole === 'presentation' || ariaRole === 'none') return '';
+    return ariaRole;
+  }
 
   const tag = el.tagName;
 
@@ -99,7 +107,8 @@ function getRole(el: Element): string {
       case 'search': return 'searchbox';
       case 'submit':
       case 'reset':
-      case 'button': return 'button';
+      case 'button':
+      case 'image': return 'button';
       default: return 'textbox';
     }
   }
@@ -153,12 +162,13 @@ function getAccessibleName(el: Element): string {
   const title = el.getAttribute('title');
   if (title) return title.trim();
 
-  // alt for images
+  // alt for images and image inputs
   if (el instanceof HTMLImageElement && el.alt) return el.alt;
+  if (el instanceof HTMLInputElement && el.type === 'image' && el.alt) return el.alt;
 
-  // Direct text for buttons, links, headings
+  // Direct text for buttons, links, headings, legends
   const tag = el.tagName;
-  if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || /^H[1-6]$/.test(tag)) {
+  if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || tag === 'LEGEND' || /^H[1-6]$/.test(tag)) {
     const text = el.textContent?.trim() ?? '';
     return text.length > 80 ? text.slice(0, 77) + '...' : text;
   }
@@ -196,31 +206,34 @@ function getValue(el: Element): string | undefined {
     const selected = el.selectedOptions[0];
     if (selected) return selected.textContent?.trim();
   }
+  if (el.tagName === 'OUTPUT') {
+    const text = el.textContent?.trim();
+    if (text) return text;
+  }
+  if (el instanceof HTMLProgressElement) {
+    return `${el.value}/${el.max}`;
+  }
+  if (el instanceof HTMLMeterElement) {
+    return String(el.value);
+  }
   return undefined;
 }
 
-/** Check if element is visible */
-function isVisible(el: Element): boolean {
-  if (!(el instanceof HTMLElement)) return true;
+/**
+ * Check element visibility. Returns:
+ * - 'visible': element is visible
+ * - 'hidden': element and all children are hidden (display:none)
+ * - 'self-hidden': element itself is hidden but children may be visible (visibility:hidden, opacity:0)
+ */
+function getVisibility(el: Element): 'visible' | 'hidden' | 'self-hidden' {
+  if (!(el instanceof HTMLElement)) return 'visible';
   const style = getComputedStyle(el);
-  if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
-    return false;
-  }
-  // offsetWidth/Height are 0 in jsdom and some edge cases.
-  // Only use them as a signal if they're explicitly available.
-  if (el.offsetWidth !== undefined && el.offsetHeight !== undefined) {
-    if (el.offsetWidth === 0 && el.offsetHeight === 0 && style.display !== '') {
-      // In real browsers, zero-dimension elements are hidden.
-      // But in jsdom, offsetWidth/Height are always 0, so skip this check
-      // when getComputedStyle doesn't report explicit dimensions.
-      const hasBrowserLayout = el.getBoundingClientRect().width > 0;
-      if (hasBrowserLayout === false && style.display !== '') {
-        // Likely jsdom - trust display/visibility only
-        return true;
-      }
-    }
-  }
-  return true;
+  // display:none hides the entire subtree — no children are rendered
+  if (style.display === 'none') return 'hidden';
+  // visibility:hidden and opacity:0 hide the element itself,
+  // but children can override with visibility:visible
+  if (style.visibility === 'hidden' || style.opacity === '0') return 'self-hidden';
+  return 'visible';
 }
 
 /** Check if element matches interactive selectors */
@@ -236,16 +249,29 @@ function walkDOM(
 ): SnapshotNode | null {
   if (SKIP_TAGS.has(el.tagName)) return null;
   if (el.getAttribute('aria-hidden') === 'true') return null;
-  if (!isVisible(el)) return null;
 
-  const role = getRole(el);
-  const interactive = isInteractive(el);
+  const vis = getVisibility(el);
+  // display:none hides the entire subtree — skip completely
+  if (vis === 'hidden') return null;
 
-  // Process children
+  const selfHidden = vis === 'self-hidden';
+
+  const role = selfHidden ? '' : getRole(el);
+  const interactive = selfHidden ? false : isInteractive(el);
+
+  // Process children (always walk children even if self is hidden,
+  // because visibility:hidden children can override with visibility:visible)
   const children: SnapshotNode[] = [];
   for (const child of el.children) {
     const childNode = walkDOM(child, refCounter, options);
     if (childNode) children.push(childNode);
+  }
+
+  // If this element is self-hidden, only pass through children
+  if (selfHidden) {
+    if (children.length === 0) return null;
+    if (children.length === 1) return children[0];
+    return { role: 'group', children };
   }
 
   // Skip non-structural, non-interactive elements that have <=1 child
@@ -286,6 +312,8 @@ function walkDOM(
       el instanceof HTMLTextAreaElement) &&
     el.matches(':disabled')
   ) {
+    node.disabled = true;
+  } else if (el.getAttribute('aria-disabled') === 'true') {
     node.disabled = true;
   }
 

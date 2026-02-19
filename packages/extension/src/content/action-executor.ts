@@ -5,6 +5,13 @@
 import { resolveRef } from './snapshot-engine';
 import { PAGE_BRIDGE_CHANNEL } from '@webclaw/shared';
 
+/** Check if an element is disabled (native :disabled or aria-disabled="true") */
+function isElementDisabled(el: HTMLElement): boolean {
+  if (el.matches(':disabled')) return true;
+  if (el.getAttribute('aria-disabled') === 'true') return true;
+  return false;
+}
+
 /** Click an element by @ref */
 export function clickElement(ref: string): { success: boolean; error?: string } {
   const el = resolveRef(ref);
@@ -16,7 +23,7 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
     return { success: false, error: `Element ${ref} is not an HTMLElement` };
   }
 
-  if (el.matches(':disabled')) {
+  if (isElementDisabled(el)) {
     return { success: false, error: `Element ${ref} is disabled` };
   }
 
@@ -49,6 +56,10 @@ export function typeText(
     !el.getAttribute('contenteditable')
   ) {
     return { success: false, error: `Element ${ref} is not a text input` };
+  }
+
+  if (el instanceof HTMLElement && isElementDisabled(el)) {
+    return { success: false, error: `Element ${ref} is disabled` };
   }
 
   el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
@@ -99,6 +110,10 @@ export function selectOption(
 
   if (!(el instanceof HTMLSelectElement)) {
     return { success: false, error: `Element ${ref} is not a select element` };
+  }
+
+  if (isElementDisabled(el)) {
+    return { success: false, error: `Element ${ref} is disabled` };
   }
 
   el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
