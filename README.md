@@ -41,9 +41,9 @@ flowchart TB
     CS --- SN
     CS --- AE
 
-    style LLM fill:#f9f,stroke:#333
-    style MCP fill:#bbf,stroke:#333
-    style EXT fill:#bfb,stroke:#333
+    style LLM fill:#7b2d8b,stroke:#333,color:#fff
+    style MCP fill:#1a5276,stroke:#333,color:#fff
+    style EXT fill:#1e8449,stroke:#333,color:#fff
 ```
 
 ## MCP Tools
