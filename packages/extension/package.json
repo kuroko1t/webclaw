@@ -7,6 +7,8 @@
     "build": "vite build && node scripts/post-build.js",
     "dev": "vite build --watch",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude 'src/__tests__/e2e/**'",
+    "test:e2e": "vitest run --include 'src/__tests__/e2e/**'",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {

@@ -22,7 +22,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist .turbo",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "zod": "^3.23.0"
