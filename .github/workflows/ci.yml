@@ -41,8 +41,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Install Chrome for Testing
-        run: npx @puppeteer/browsers install chrome@stable --path /tmp/chrome-for-testing
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+        with:
+          chrome-version: stable
 
       - run: pnpm build
 
@@ -50,8 +52,12 @@ jobs:
         if: github.event_name == 'push'
         run: pnpm --filter @webclaw/extension test:e2e:smoke
         timeout-minutes: 5
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
 
       - name: Run full E2E tests
         if: github.event_name == 'pull_request'
         run: pnpm --filter @webclaw/extension test:e2e
         timeout-minutes: 15
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
