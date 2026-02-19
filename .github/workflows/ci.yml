@@ -28,6 +28,7 @@ jobs:
 
   e2e:
     name: E2E Tests
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
