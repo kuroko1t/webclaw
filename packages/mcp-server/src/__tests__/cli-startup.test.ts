@@ -14,12 +14,18 @@ describe('MCP Server stdio startup', () => {
     });
 
     let stderr = '';
-    child.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
 
-    // Give it time to start
-    await new Promise((r) => setTimeout(r, 500));
+    // Wait for the startup message or timeout
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => resolve(), 5000);
+      child.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+        if (stderr.includes('MCP Server started')) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+    });
 
     // Process should still be running
     expect(child.exitCode).toBeNull();
