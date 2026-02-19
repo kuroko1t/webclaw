@@ -40,8 +40,6 @@ const SKIP_TAGS = new Set([
   'SCRIPT',
   'STYLE',
   'NOSCRIPT',
-  'SVG',
-  'PATH',
   'META',
   'LINK',
   'HEAD',
@@ -80,6 +78,38 @@ const STRUCTURAL_ROLES: Record<string, string> = {
   METER: 'meter',
 };
 
+/**
+ * Tags whose structural roles are removed when an ancestor has
+ * role="presentation" or role="none" (ARIA "presentational children" rule).
+ * Maps parent tag → set of child tags that lose their roles.
+ */
+const PRESENTATIONAL_CHILDREN: Record<string, Set<string>> = {
+  TABLE: new Set(['THEAD', 'TBODY', 'TFOOT', 'TR', 'TH', 'TD', 'CAPTION', 'COLGROUP', 'COL']),
+  UL: new Set(['LI']),
+  OL: new Set(['LI']),
+  DL: new Set(['DT', 'DD']),
+};
+
+/** Check if element's structural role is stripped by a presentational ancestor */
+function isPresentationalChild(el: Element): boolean {
+  const tag = el.tagName;
+  let parent = el.parentElement;
+  while (parent) {
+    const parentRole = parent.getAttribute('role');
+    if (parentRole === 'presentation' || parentRole === 'none') {
+      const parentTag = parent.tagName;
+      const children = PRESENTATIONAL_CHILDREN[parentTag];
+      if (children?.has(tag)) return true;
+    }
+    // Stop walking once we leave the presentational scope
+    if (parent.getAttribute('role') && parent.getAttribute('role') !== 'presentation' && parent.getAttribute('role') !== 'none') {
+      break;
+    }
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
 /** Get the accessible role for an element */
 function getRole(el: Element): string {
   // Explicit ARIA role
@@ -92,7 +122,7 @@ function getRole(el: Element): string {
 
   const tag = el.tagName;
 
-  // Interactive elements
+  // Interactive elements (not affected by presentational children rule)
   if (tag === 'A' && el.hasAttribute('href')) return 'link';
   if (tag === 'BUTTON' || tag === 'SUMMARY') return 'button';
   if (tag === 'SELECT') return (el as HTMLSelectElement).multiple ? 'listbox' : 'combobox';
@@ -120,8 +150,11 @@ function getRole(el: Element): string {
   // Img with alt
   if (tag === 'IMG') return 'img';
 
-  // Structural roles
-  if (tag in STRUCTURAL_ROLES) return STRUCTURAL_ROLES[tag];
+  // Structural roles — check presentational children rule
+  if (tag in STRUCTURAL_ROLES) {
+    if (isPresentationalChild(el)) return '';
+    return STRUCTURAL_ROLES[tag];
+  }
 
   return '';
 }

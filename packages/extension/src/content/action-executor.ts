@@ -19,16 +19,17 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
     return { success: false, error: `Element not found for ref ${ref}` };
   }
 
-  if (!(el instanceof HTMLElement)) {
-    return { success: false, error: `Element ${ref} is not an HTMLElement` };
+  // Support both HTMLElement and SVGElement (SVGs with role="button" etc.)
+  if (!(el instanceof HTMLElement) && !(el instanceof SVGElement)) {
+    return { success: false, error: `Element ${ref} is not a clickable element` };
   }
 
-  if (isElementDisabled(el)) {
+  if (el instanceof HTMLElement && isElementDisabled(el)) {
     return { success: false, error: `Element ${ref} is disabled` };
   }
 
   // Scroll into view
-  el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
+  (el as HTMLElement).scrollIntoView?.({ behavior: 'instant', block: 'center' });
 
   // Get element center coordinates for realistic mouse events
   const rect = el.getBoundingClientRect();
@@ -37,7 +38,9 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
   const mouseOpts = { bubbles: true, cancelable: true, clientX, clientY };
 
   // Dispatch click events
-  el.focus();
+  if ('focus' in el && typeof el.focus === 'function') {
+    el.focus();
+  }
   el.dispatchEvent(new MouseEvent('mousedown', mouseOpts));
   el.dispatchEvent(new MouseEvent('mouseup', mouseOpts));
   el.dispatchEvent(new MouseEvent('click', mouseOpts));
