@@ -18,6 +18,9 @@
     "test:e2e": {
       "dependsOn": ["build"]
     },
+    "test:e2e:smoke": {
+      "dependsOn": ["build"]
+    },
     "lint": {},
     "clean": {
       "cache": false

@@ -8,7 +8,8 @@
     "dev": "vite build --watch",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'src/__tests__/e2e/**'",
-    "test:e2e": "vitest run --include 'src/__tests__/e2e/**'",
+    "test:e2e": "vitest run src/__tests__/e2e/",
+    "test:e2e:smoke": "vitest run src/__tests__/e2e/snapshot-actions-e2e.test.ts src/__tests__/e2e/error-handling-e2e.test.ts src/__tests__/e2e/content-script-injection.e2e.test.ts src/__tests__/e2e/webmcp-discovery-e2e.test.ts src/__tests__/e2e/stale-refs-navigation-e2e.test.ts",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {

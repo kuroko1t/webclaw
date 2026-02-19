@@ -27,8 +27,7 @@ jobs:
       - run: turbo run test:unit
 
   e2e:
-    name: E2E Tests
-    if: github.event_name == 'pull_request'
+    name: E2E Tests (${{ github.event_name == 'pull_request' && 'full' || 'smoke' }})
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +46,12 @@ jobs:
 
       - run: pnpm build
 
-      - name: Run E2E tests
+      - name: Run E2E smoke tests
+        if: github.event_name == 'push'
+        run: pnpm --filter @webclaw/extension test:e2e:smoke
+        timeout-minutes: 5
+
+      - name: Run full E2E tests
+        if: github.event_name == 'pull_request'
         run: pnpm --filter @webclaw/extension test:e2e
         timeout-minutes: 15
