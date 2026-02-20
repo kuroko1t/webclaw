@@ -65,6 +65,22 @@ function findChromeForTesting(): string[] {
  * mode with extension support.
  */
 export async function launchBrowserWithExtension(): Promise<Browser> {
+  // When running under xvfb (CI), skip --headless=new as it breaks
+  // service worker loading in Chrome for Testing 145+.
+  // xvfb provides a virtual display so headless flag is unnecessary.
+  const useXvfb = !!process.env.WEBCLAW_E2E_XVFB;
+  const args = [
+    `--disable-extensions-except=${DIST_PATH}`,
+    `--load-extension=${DIST_PATH}`,
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+  ];
+  if (!useXvfb) {
+    args.unshift('--headless=new');
+  }
+
   return puppeteer.launch({
     headless: false,
     executablePath: findChrome(),
@@ -72,15 +88,7 @@ export async function launchBrowserWithExtension(): Promise<Browser> {
       '--disable-extensions',
       '--disable-component-extensions-with-background-pages',
     ],
-    args: [
-      '--headless=new',
-      `--disable-extensions-except=${DIST_PATH}`,
-      `--load-extension=${DIST_PATH}`,
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-    ],
+    args,
   });
 }
 
