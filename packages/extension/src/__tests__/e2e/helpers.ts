@@ -60,9 +60,9 @@ function findChromeForTesting(): string[] {
  * Launch Chrome with the extension loaded in headless=new mode.
  *
  * We use `ignoreAllDefaultArgs: true` to prevent Puppeteer from injecting
- * default flags that interfere with extension service worker loading in
- * Chrome for Testing 145+. All necessary Chrome flags are specified
- * explicitly.
+ * `--disable-extensions` and `--disable-component-extensions-with-background-pages`
+ * which block extension loading. All necessary Chrome flags — including the
+ * important Puppeteer defaults for stable operation — are specified explicitly.
  */
 export async function launchBrowserWithExtension(): Promise<Browser> {
   const userDataDir = mkdtempSync(resolve(tmpdir(), 'webclaw-e2e-'));
@@ -81,6 +81,21 @@ export async function launchBrowserWithExtension(): Promise<Browser> {
       '--disable-dev-shm-usage',
       '--remote-debugging-port=0',
       `--user-data-dir=${userDataDir}`,
+      // Re-add important Puppeteer defaults for stable browser operation
+      '--no-first-run',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-hang-monitor',
+      '--disable-ipc-flooding-protection',
+      '--disable-popup-blocking',
+      '--disable-prompt-on-repost',
+      '--disable-sync',
+      '--disable-default-apps',
+      '--enable-features=NetworkService,NetworkServiceInProcess',
+      '--password-store=basic',
+      '--use-mock-keychain',
+      '--metrics-recording-only',
     ],
   });
 }
