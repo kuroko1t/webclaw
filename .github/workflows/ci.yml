@@ -50,75 +50,12 @@ jobs:
 
       - run: pnpm build
 
-      - name: Debug - verify extension under xvfb
-        working-directory: packages/extension
-        run: |
-          xvfb-run --auto-servernum node -e "
-            const puppeteer = require('puppeteer-core');
-            const path = require('path');
-            const DIST = path.resolve('dist');
-            (async () => {
-              console.log('DISPLAY:', process.env.DISPLAY);
-              console.log('Chrome:', process.env.CHROME_PATH);
-              console.log('Extension:', DIST);
-
-              // Test 1: with --headless=new
-              console.log('--- Test 1: --headless=new ---');
-              const b1 = await puppeteer.launch({
-                headless: false,
-                executablePath: process.env.CHROME_PATH,
-                ignoreDefaultArgs: ['--disable-extensions', '--disable-component-extensions-with-background-pages'],
-                args: ['--headless=new', '--disable-extensions-except=' + DIST, '--load-extension=' + DIST, '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-              });
-              const t1 = await b1.targets();
-              console.log('Targets:', t1.map(t => t.type() + ' ' + t.url()));
-              const sw1 = await b1.waitForTarget(t => t.type() === 'service_worker', { timeout: 10000 }).catch(() => null);
-              console.log('SW:', sw1 ? 'FOUND ' + sw1.url() : 'NOT FOUND');
-              await b1.close();
-
-              // Test 2: without --headless=new (xvfb display)
-              console.log('--- Test 2: no headless (xvfb) ---');
-              const b2 = await puppeteer.launch({
-                headless: false,
-                executablePath: process.env.CHROME_PATH,
-                ignoreDefaultArgs: ['--disable-extensions', '--disable-component-extensions-with-background-pages'],
-                args: ['--disable-extensions-except=' + DIST, '--load-extension=' + DIST, '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
-              });
-              const t2 = await b2.targets();
-              console.log('Targets:', t2.map(t => t.type() + ' ' + t.url()));
-              const sw2 = await b2.waitForTarget(t => t.type() === 'service_worker', { timeout: 10000 }).catch(() => null);
-              console.log('SW:', sw2 ? 'FOUND ' + sw2.url() : 'NOT FOUND');
-              await b2.close();
-
-              // Test 3: --headless=new but ignoring more default args
-              console.log('--- Test 3: --headless=new + ignoreAllDefaultArgs ---');
-              const b3 = await puppeteer.launch({
-                headless: false,
-                executablePath: process.env.CHROME_PATH,
-                ignoreAllDefaultArgs: true,
-                args: ['--headless=new', '--disable-extensions-except=' + DIST, '--load-extension=' + DIST, '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--remote-debugging-port=0', '--user-data-dir=/tmp/chrome-test-profile'],
-              });
-              const t3 = await b3.targets();
-              console.log('Targets:', t3.map(t => t.type() + ' ' + t.url()));
-              const sw3 = await b3.waitForTarget(t => t.type() === 'service_worker', { timeout: 10000 }).catch(() => null);
-              console.log('SW:', sw3 ? 'FOUND ' + sw3.url() : 'NOT FOUND');
-              await b3.close();
-
-              console.log('Done');
-            })().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
-          "
-        timeout-minutes: 2
-
       - name: Run E2E smoke tests
         if: github.event_name == 'push'
-        run: xvfb-run --auto-servernum pnpm --filter @webclaw/extension test:e2e:smoke
+        run: pnpm --filter @webclaw/extension test:e2e:smoke
         timeout-minutes: 5
-        env:
-          WEBCLAW_E2E_XVFB: "1"
 
       - name: Run full E2E tests
         if: github.event_name == 'pull_request'
-        run: xvfb-run --auto-servernum pnpm --filter @webclaw/extension test:e2e
+        run: pnpm --filter @webclaw/extension test:e2e
         timeout-minutes: 15
-        env:
-          WEBCLAW_E2E_XVFB: "1"

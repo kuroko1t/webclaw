@@ -5,7 +5,8 @@
 import puppeteer, { type Browser, type Page, type WebWorker } from 'puppeteer-core';
 import { resolve } from 'path';
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'http';
-import { readFileSync } from 'fs';
+import { readFileSync, mkdtempSync } from 'fs';
+import { tmpdir } from 'os';
 
 /** Absolute path to the built extension */
 const DIST_PATH = resolve(__dirname, '../../../dist');
@@ -58,37 +59,29 @@ function findChromeForTesting(): string[] {
 /**
  * Launch Chrome with the extension loaded in headless=new mode.
  *
- * Puppeteer's default args include `--disable-extensions` and
- * `--disable-component-extensions-with-background-pages` which prevent
- * extension loading. We strip them via `ignoreDefaultArgs` and pass
- * `--headless=new` manually so Chrome runs the full browser in headless
- * mode with extension support.
+ * We use `ignoreAllDefaultArgs: true` to prevent Puppeteer from injecting
+ * default flags that interfere with extension service worker loading in
+ * Chrome for Testing 145+. All necessary Chrome flags are specified
+ * explicitly.
  */
 export async function launchBrowserWithExtension(): Promise<Browser> {
-  // When running under xvfb (CI), skip --headless=new as it breaks
-  // service worker loading in Chrome for Testing 145+.
-  // xvfb provides a virtual display so headless flag is unnecessary.
-  const useXvfb = !!process.env.WEBCLAW_E2E_XVFB;
-  const args = [
-    `--disable-extensions-except=${DIST_PATH}`,
-    `--load-extension=${DIST_PATH}`,
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-gpu',
-    '--disable-dev-shm-usage',
-  ];
-  if (!useXvfb) {
-    args.unshift('--headless=new');
-  }
+  const userDataDir = mkdtempSync(resolve(tmpdir(), 'webclaw-e2e-'));
 
   return puppeteer.launch({
     headless: false,
     executablePath: findChrome(),
-    ignoreDefaultArgs: [
-      '--disable-extensions',
-      '--disable-component-extensions-with-background-pages',
+    ignoreAllDefaultArgs: true,
+    args: [
+      '--headless=new',
+      `--disable-extensions-except=${DIST_PATH}`,
+      `--load-extension=${DIST_PATH}`,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--remote-debugging-port=0',
+      `--user-data-dir=${userDataDir}`,
     ],
-    args,
   });
 }
 
