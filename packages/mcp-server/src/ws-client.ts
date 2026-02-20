@@ -19,8 +19,12 @@ export class WebSocketClient {
   private connection: WebSocket | null = null;
   private pendingRequests = new Map<string, PendingRequest>();
 
-  constructor(port: number, host = '127.0.0.1') {
-    this.wss = new WebSocketServer({ port, host });
+  private constructor(wss: WebSocketServer) {
+    this.wss = wss;
+
+    this.wss.on('error', (err) => {
+      console.error('[WebClaw WS] Server error:', err.message);
+    });
 
     this.wss.on('connection', (ws) => {
       // Only allow one connection; close the previous one
@@ -50,6 +54,16 @@ export class WebSocketClient {
         console.error('[WebClaw WS] Connection error:', err.message);
       });
     });
+  }
+
+  /** Create a WebSocketClient and wait for the server to be listening. */
+  static async create(port: number, host = '127.0.0.1'): Promise<WebSocketClient> {
+    const wss = new WebSocketServer({ port, host });
+    await new Promise<void>((resolve, reject) => {
+      wss.once('listening', resolve);
+      wss.once('error', reject);
+    });
+    return new WebSocketClient(wss);
   }
 
   private handleMessage(message: unknown): void {

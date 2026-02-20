@@ -14,6 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliPath = resolve(__dirname, '../../dist/cli.js');
 
 let child: ChildProcess | null = null;
+let nextPort = 19080;
 
 /** Send a JSON-RPC message as NDJSON (newline-delimited JSON). */
 function sendJsonRpc(proc: ChildProcess, message: object): void {
@@ -47,6 +48,32 @@ function createResponseCollector(proc: ChildProcess): { responses: any[] } {
   return state;
 }
 
+/** Spawn CLI and wait for it to be fully ready (WebSocket + MCP). */
+function spawnAndWaitReady(): Promise<ChildProcess> {
+  const port = nextPort++;
+  const proc = spawn('node', [cliPath], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: 15000,
+    env: { ...process.env, WEBCLAW_PORT: String(port) },
+  });
+
+  return new Promise((resolve, reject) => {
+    let stderr = '';
+    const timeout = setTimeout(() => reject(new Error('Startup timed out')), 10000);
+    proc.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+      if (stderr.includes('MCP Server started')) {
+        clearTimeout(timeout);
+        resolve(proc);
+      }
+    });
+    proc.on('exit', (code) => {
+      clearTimeout(timeout);
+      reject(new Error(`Process exited with code ${code} before ready. stderr: ${stderr}`));
+    });
+  });
+}
+
 afterEach(() => {
   if (child && child.exitCode === null) {
     child.kill('SIGTERM');
@@ -56,15 +83,9 @@ afterEach(() => {
 
 describe('MCP Server stdio integration', () => {
   it('responds to initialize request via JSON-RPC', async () => {
-    child = spawn('node', [cliPath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 15000,
-    });
+    child = await spawnAndWaitReady();
 
     const collector = createResponseCollector(child);
-
-    // Give the server time to start
-    await new Promise((r) => setTimeout(r, 1000));
 
     sendJsonRpc(child, {
       jsonrpc: '2.0',
@@ -91,14 +112,9 @@ describe('MCP Server stdio integration', () => {
   }, 20000);
 
   it('lists 8 tools via JSON-RPC after initialization', async () => {
-    child = spawn('node', [cliPath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 15000,
-    });
+    child = await spawnAndWaitReady();
 
     const collector = createResponseCollector(child);
-
-    await new Promise((r) => setTimeout(r, 1000));
 
     // Send initialize
     sendJsonRpc(child, {
@@ -154,14 +170,9 @@ describe('MCP Server stdio integration', () => {
   }, 20000);
 
   it('each tool schema from stdio has correct structure', async () => {
-    child = spawn('node', [cliPath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 15000,
-    });
+    child = await spawnAndWaitReady();
 
     const collector = createResponseCollector(child);
-
-    await new Promise((r) => setTimeout(r, 1000));
 
     sendJsonRpc(child, {
       jsonrpc: '2.0',

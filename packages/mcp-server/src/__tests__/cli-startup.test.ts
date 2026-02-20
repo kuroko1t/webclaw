@@ -11,6 +11,7 @@ describe('MCP Server stdio startup', () => {
     const child = spawn('node', [cliPath], {
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 10000,
+      env: { ...process.env, WEBCLAW_PORT: '19070' },
     });
 
     let stderr = '';
@@ -20,7 +21,7 @@ describe('MCP Server stdio startup', () => {
       const timeout = setTimeout(() => resolve(), 5000);
       child.stderr?.on('data', (chunk: Buffer) => {
         stderr += chunk.toString();
-        if (stderr.includes('WebSocket server listening')) {
+        if (stderr.includes('MCP Server started')) {
           clearTimeout(timeout);
           resolve();
         }
@@ -39,7 +40,7 @@ describe('MCP Server stdio startup', () => {
     });
 
     // Should have started (stderr contains startup message)
-    expect(stderr).toContain('WebSocket server listening');
+    expect(stderr).toContain('MCP Server started');
   });
 
   it('shows help with --help flag', async () => {

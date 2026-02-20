@@ -44,11 +44,11 @@ More info: https://github.com/kuroko1t/webclaw`);
   await install();
 } else {
   const port = Number(process.env[WEBSOCKET_PORT_ENV]) || WEBSOCKET_DEFAULT_PORT;
-  const wsClient = new WebSocketClient(port);
+  const wsClient = await WebSocketClient.create(port);
+  console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${port}`);
 
   const server = createWebClawServer({ wsClient });
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error(`[WebClaw] MCP Server started (stdio transport)`);
-  console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${port}`);
 }
