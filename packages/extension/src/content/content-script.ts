@@ -7,7 +7,7 @@
  * - WebMCP discovery and invocation
  * - Communication with Service Worker
  */
-import { takeSnapshot } from './snapshot-engine';
+import { takeSnapshot, resolveRef } from './snapshot-engine';
 import { clickElement, typeText, selectOption, invokeWebMCPTool } from './action-executor';
 import { discoverWebMCPTools, getCachedTools, invokeSynthesizedTool } from './webmcp-discovery';
 
@@ -90,6 +90,31 @@ async function handleAction(message: {
       const result = await invokeWebMCPTool(toolName, args);
       logActivity('invokeWebMCPTool', { toolName, success: result.success });
       return result;
+    }
+
+    case 'scrollPage': {
+      const direction = (message.direction as string) ?? 'down';
+      const amount = message.amount as number | undefined;
+      const scrollAmount = amount ?? window.innerHeight;
+      const scrollY = direction === 'up' ? -scrollAmount : scrollAmount;
+      window.scrollBy({ top: scrollY, behavior: 'smooth' });
+      logActivity('scrollPage', { direction, amount: scrollAmount });
+      return {
+        success: true,
+        scrolledBy: scrollY,
+        scrollPosition: { x: window.scrollX, y: window.scrollY },
+      };
+    }
+
+    case 'scrollToElement': {
+      const ref = message.ref as string;
+      const element = resolveRef(ref);
+      if (!element) {
+        return { success: false, error: `Element ${ref} not found` };
+      }
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      logActivity('scrollToElement', { ref });
+      return { success: true, ref };
     }
 
     default:

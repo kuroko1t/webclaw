@@ -1,17 +1,35 @@
 /**
  * WebClaw MCP Server.
  *
- * Exposes 8 browser interaction tools via MCP protocol (stdio transport).
+ * Exposes 17 browser interaction tools via MCP protocol (stdio transport).
  * Communicates with the Chrome Extension via WebSocket.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { ERROR_RECOVERY } from 'webclaw-shared';
+import type { ErrorCode } from 'webclaw-shared';
 import { WebSocketClient } from './ws-client.js';
+
+/** Format an error response with recovery suggestions */
+function formatErrorResponse(payload: unknown): {
+  content: Array<{ type: 'text'; text: string }>;
+  isError: true;
+} {
+  const errorObj = payload as { code?: string; message?: string };
+  const code = errorObj?.code as ErrorCode | undefined;
+  const message = errorObj?.message ?? JSON.stringify(payload);
+  const recovery = code && ERROR_RECOVERY[code] ? `\nHint: ${ERROR_RECOVERY[code]}` : '';
+
+  return {
+    content: [{ type: 'text', text: `${message}${recovery}` }],
+    isError: true,
+  };
+}
 
 export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
-    version: '0.3.1',
+    version: '0.4.0',
   });
 
   const wsClient = options.wsClient;
@@ -25,12 +43,9 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
     },
     async ({ url, tabId }) => {
-      const response = await wsClient.request('navigate', { url, tabId });
+      const response = await wsClient.requestWithRetry('navigate', { url, tabId });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Navigation failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       const result = response.payload as { url: string; title: string; tabId: number };
       return {
@@ -48,12 +63,9 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: 4000)'),
     },
     async ({ tabId, maxTokens }) => {
-      const response = await wsClient.request('snapshot', { tabId, maxTokens });
+      const response = await wsClient.requestWithRetry('snapshot', { tabId, maxTokens });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Snapshot failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       const result = response.payload as { text: string; snapshotId: string; url: string; title: string };
       return {
@@ -75,12 +87,9 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, snapshotId, tabId }) => {
-      const response = await wsClient.request('click', { ref, snapshotId, tabId });
+      const response = await wsClient.requestWithRetry('click', { ref, snapshotId, tabId });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Click failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       return {
         content: [{ type: 'text', text: `Clicked ${ref}` }],
@@ -100,7 +109,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, text, snapshotId, clearFirst, tabId }) => {
-      const response = await wsClient.request('typeText', {
+      const response = await wsClient.requestWithRetry('typeText', {
         ref,
         text,
         snapshotId,
@@ -108,10 +117,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
         tabId,
       });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Type failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       return {
         content: [{ type: 'text', text: `Typed "${text}" into ${ref}` }],
@@ -130,17 +136,14 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, value, snapshotId, tabId }) => {
-      const response = await wsClient.request('selectOption', {
+      const response = await wsClient.requestWithRetry('selectOption', {
         ref,
         value,
         snapshotId,
         tabId,
       });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Select failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       return {
         content: [{ type: 'text', text: `Selected "${value}" in ${ref}` }],
@@ -156,12 +159,9 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ tabId }) => {
-      const response = await wsClient.request('listWebMCPTools', { tabId });
+      const response = await wsClient.requestWithRetry('listWebMCPTools', { tabId });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `List tools failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       const result = response.payload as { tools: Array<{ name: string; description: string; source: string; inputSchema: unknown }> };
       const toolList = result.tools
@@ -188,16 +188,13 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ toolName, args, tabId }) => {
-      const response = await wsClient.request('invokeWebMCPTool', {
+      const response = await wsClient.requestWithRetry('invokeWebMCPTool', {
         toolName,
         args,
         tabId,
       });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Invoke failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       const result = response.payload as { success: boolean; result?: unknown; error?: string };
       if (!result.success) {
@@ -220,12 +217,9 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ tabId }) => {
-      const response = await wsClient.request('screenshot', { tabId });
+      const response = await wsClient.requestWithRetry('screenshot', { tabId });
       if (response.type === 'error') {
-        return {
-          content: [{ type: 'text', text: `Screenshot failed: ${JSON.stringify(response.payload)}` }],
-          isError: true,
-        };
+        return formatErrorResponse(response.payload);
       }
       const result = response.payload as { dataUrl: string; tabId: number };
       // Extract base64 data from data URL
@@ -236,6 +230,204 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
           data: base64,
           mimeType: 'image/png',
         }],
+      };
+    }
+  );
+
+  // --- Tool: new_tab ---
+  server.tool(
+    'new_tab',
+    'Open a new browser tab',
+    {
+      url: z.string().url().optional().describe('URL to open (defaults to new tab page)'),
+    },
+    async ({ url }) => {
+      const response = await wsClient.requestWithRetry('newTab', { url });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as { tabId: number; url: string; title: string };
+      return {
+        content: [{
+          type: 'text',
+          text: `Opened new tab (${result.tabId})${result.url ? `\nURL: ${result.url}` : ''}${result.title ? `\nTitle: ${result.title}` : ''}`,
+        }],
+      };
+    }
+  );
+
+  // --- Tool: list_tabs ---
+  server.tool(
+    'list_tabs',
+    'List all open browser tabs',
+    {},
+    async () => {
+      const response = await wsClient.requestWithRetry('listTabs', {});
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as {
+        tabs: Array<{ tabId: number; url: string; title: string; active: boolean }>;
+      };
+      const tabList = result.tabs
+        .map((t) => `${t.active ? '* ' : '  '}[${t.tabId}] ${t.title ?? '(no title)'} - ${t.url ?? '(no url)'}`)
+        .join('\n');
+      return {
+        content: [{
+          type: 'text',
+          text: `${result.tabs.length} tabs:\n${tabList}`,
+        }],
+      };
+    }
+  );
+
+  // --- Tool: switch_tab ---
+  server.tool(
+    'switch_tab',
+    'Switch to a specific browser tab',
+    {
+      tabId: z.number().int().describe('Tab ID to switch to'),
+    },
+    async ({ tabId }) => {
+      const response = await wsClient.requestWithRetry('switchTab', { tabId });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as { tabId: number; url: string; title: string };
+      return {
+        content: [{
+          type: 'text',
+          text: `Switched to tab ${result.tabId}: ${result.title}\nURL: ${result.url}`,
+        }],
+      };
+    }
+  );
+
+  // --- Tool: close_tab ---
+  server.tool(
+    'close_tab',
+    'Close a browser tab',
+    {
+      tabId: z.number().int().describe('Tab ID to close'),
+    },
+    async ({ tabId }) => {
+      const response = await wsClient.requestWithRetry('closeTab', { tabId });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      return {
+        content: [{ type: 'text', text: `Closed tab ${tabId}` }],
+      };
+    }
+  );
+
+  // --- Tool: go_back ---
+  server.tool(
+    'go_back',
+    'Navigate back in browser history',
+    {
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+    },
+    async ({ tabId }) => {
+      const response = await wsClient.requestWithRetry('goBack', { tabId });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as { url: string; title: string; tabId: number };
+      return {
+        content: [{ type: 'text', text: `Went back to: ${result.title}\nURL: ${result.url}` }],
+      };
+    }
+  );
+
+  // --- Tool: go_forward ---
+  server.tool(
+    'go_forward',
+    'Navigate forward in browser history',
+    {
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+    },
+    async ({ tabId }) => {
+      const response = await wsClient.requestWithRetry('goForward', { tabId });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as { url: string; title: string; tabId: number };
+      return {
+        content: [{ type: 'text', text: `Went forward to: ${result.title}\nURL: ${result.url}` }],
+      };
+    }
+  );
+
+  // --- Tool: reload ---
+  server.tool(
+    'reload',
+    'Reload the current page',
+    {
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+      bypassCache: z.boolean().optional().describe('Bypass browser cache (default: false)'),
+    },
+    async ({ tabId, bypassCache }) => {
+      const response = await wsClient.requestWithRetry('reload', { tabId, bypassCache });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as { url: string; title: string; tabId: number };
+      return {
+        content: [{ type: 'text', text: `Reloaded: ${result.title}\nURL: ${result.url}` }],
+      };
+    }
+  );
+
+  // --- Tool: wait_for_navigation ---
+  server.tool(
+    'wait_for_navigation',
+    'Wait for the current page to finish loading',
+    {
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+      timeoutMs: z.number().int().positive().optional().describe('Maximum wait time in milliseconds (default: 30000)'),
+    },
+    async ({ tabId, timeoutMs }) => {
+      const response = await wsClient.requestWithRetry('waitForNavigation', { tabId, timeoutMs });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as { url: string; title: string; tabId: number };
+      return {
+        content: [{ type: 'text', text: `Page loaded: ${result.title}\nURL: ${result.url}` }],
+      };
+    }
+  );
+
+  // --- Tool: scroll_page ---
+  server.tool(
+    'scroll_page',
+    'Scroll the page or scroll to a specific element',
+    {
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+      direction: z.enum(['up', 'down']).optional().describe('Scroll direction (default: down)'),
+      amount: z.number().int().positive().optional().describe('Scroll amount in pixels (default: viewport height)'),
+      ref: z.string().regex(/^@e\d+$/).optional().describe('Element reference to scroll to (e.g., @e5)'),
+      snapshotId: z.string().min(1).optional().describe('Snapshot ID (required when using ref)'),
+    },
+    async ({ tabId, direction, amount, ref, snapshotId }) => {
+      const response = await wsClient.requestWithRetry('scrollPage', {
+        tabId,
+        direction,
+        amount,
+        ref,
+        snapshotId,
+      });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      if (ref) {
+        return {
+          content: [{ type: 'text', text: `Scrolled to element ${ref}` }],
+        };
+      }
+      return {
+        content: [{ type: 'text', text: `Scrolled ${direction ?? 'down'}` }],
       };
     }
   );

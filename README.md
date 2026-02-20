@@ -45,16 +45,42 @@ flowchart TB
 
 ## MCP Tools
 
+### Page Interaction
+
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `navigate_to` | `url` | Navigate to a URL in the active tab |
-| `page_snapshot` | `maxTokens?` | Get a compact accessibility tree with `@ref` labels |
-| `click` | `ref` | Click an element by its `@ref` label |
-| `type_text` | `ref`, `text` | Type text into an input/textarea by `@ref` |
-| `select_option` | `ref`, `value` | Select a dropdown option by `@ref` |
-| `list_webmcp_tools` | | Discover tools on the page (native WebMCP + auto-synthesized from buttons/forms) |
-| `invoke_webmcp_tool` | `toolName`, `args?` | Invoke a discovered tool (native or synthesized) |
-| `screenshot` | | Capture the visible area of the active tab |
+| `navigate_to` | `url`, `tabId?` | Navigate to a URL |
+| `page_snapshot` | `maxTokens?`, `tabId?` | Get a compact accessibility tree with `@ref` labels |
+| `click` | `ref`, `snapshotId`, `tabId?` | Click an element by its `@ref` label |
+| `type_text` | `ref`, `text`, `snapshotId`, `tabId?` | Type text into an input/textarea by `@ref` |
+| `select_option` | `ref`, `value`, `snapshotId`, `tabId?` | Select a dropdown option by `@ref` |
+| `screenshot` | `tabId?` | Capture the visible area of the active tab |
+
+### Tab Management
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `new_tab` | `url?` | Open a new tab (optionally with a URL) |
+| `list_tabs` | | List all open tabs with tabId, URL, title, and active state |
+| `switch_tab` | `tabId` | Switch to a specific tab |
+| `close_tab` | `tabId` | Close a specific tab |
+
+### Navigation
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `go_back` | `tabId?` | Go back to the previous page |
+| `go_forward` | `tabId?` | Go forward to the next page |
+| `reload` | `tabId?`, `bypassCache?` | Reload the current page |
+| `wait_for_navigation` | `tabId?`, `timeoutMs?` | Wait for the page to finish loading |
+| `scroll_page` | `direction?`, `amount?`, `ref?`, `snapshotId?`, `tabId?` | Scroll the page or scroll to a specific element |
+
+### WebMCP
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `list_webmcp_tools` | `tabId?` | Discover tools on the page (native WebMCP + auto-synthesized from buttons/forms) |
+| `invoke_webmcp_tool` | `toolName`, `args?`, `tabId?` | Invoke a discovered tool (native or synthesized) |
 
 ## Quick Start
 
@@ -229,7 +255,7 @@ pnpm dev          # Watch mode
 ```
 packages/
   shared/          Type definitions, Zod schemas, utilities
-  mcp-server/      MCP server with 8 tools, WebSocket bridge
+  mcp-server/      MCP server with 17 tools, WebSocket bridge
   extension/       Chrome MV3 extension (service worker, content scripts, side panel)
 examples/
   webmcp-demo-site/  WebMCP-enabled Todo app for testing

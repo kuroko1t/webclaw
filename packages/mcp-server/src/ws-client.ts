@@ -11,6 +11,11 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { BridgeMessage, BridgeMethod } from 'webclaw-shared';
 import { createRequest, isBridgeMessage } from 'webclaw-shared';
+import {
+  OPERATION_TIMEOUTS,
+  MAX_RETRY_ATTEMPTS,
+  RETRY_BASE_DELAY_MS,
+} from 'webclaw-shared';
 import { launchChrome } from './chrome-launcher.js';
 
 interface PendingRequest {
@@ -21,6 +26,22 @@ interface PendingRequest {
 
 /** Default timeout for waiting for Chrome extension to connect. */
 const ENSURE_CONNECTED_TIMEOUT_MS = 15_000;
+
+/** Errors that are transient and worth retrying */
+const TRANSIENT_ERROR_PATTERNS = [
+  'CONNECTION_LOST',
+  'not connected',
+  'timed out',
+  'ECONNRESET',
+  'ECONNREFUSED',
+];
+
+function isTransientError(err: Error): boolean {
+  const msg = err.message.toLowerCase();
+  return TRANSIENT_ERROR_PATTERNS.some(
+    (pattern) => msg.includes(pattern.toLowerCase())
+  );
+}
 
 export class WebSocketClient {
   private wss: WebSocketServer;
@@ -57,6 +78,13 @@ export class WebSocketClient {
         if (this.connection === ws) {
           this.connection = null;
           console.error('[WebClaw] Extension disconnected');
+
+          // Reject all pending requests with CONNECTION_LOST
+          for (const [id, pending] of this.pendingRequests) {
+            clearTimeout(pending.timer);
+            this.pendingRequests.delete(id);
+            pending.reject(new Error('CONNECTION_LOST: Extension disconnected'));
+          }
         }
       });
 
@@ -192,6 +220,43 @@ export class WebSocketClient {
       this.pendingRequests.set(request.id, { resolve, reject, timer });
       this.connection!.send(JSON.stringify(request));
     });
+  }
+
+  /**
+   * Send a request with automatic retry for transient failures.
+   *
+   * Uses operation-specific timeouts from OPERATION_TIMEOUTS.
+   * Retries up to MAX_RETRY_ATTEMPTS times with exponential backoff
+   * for transient errors (connection lost, timeouts).
+   * Non-transient errors are thrown immediately.
+   */
+  async requestWithRetry(
+    method: BridgeMethod,
+    payload: unknown = {}
+  ): Promise<BridgeMessage> {
+    const timeoutMs = OPERATION_TIMEOUTS[method] ?? 60_000;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+      try {
+        return await this.request(method, payload, timeoutMs);
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        if (!isTransientError(lastError) || attempt === MAX_RETRY_ATTEMPTS) {
+          throw lastError;
+        }
+
+        // Exponential backoff: 500ms, 1000ms
+        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+        console.error(
+          `[WebClaw] Request ${method} failed (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS + 1}): ${lastError.message}. Retrying in ${delay}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError!;
   }
 
   isConnected(): boolean {

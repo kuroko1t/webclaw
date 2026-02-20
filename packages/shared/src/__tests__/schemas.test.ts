@@ -11,6 +11,15 @@ import {
   listWebMCPToolsSchema,
   invokeWebMCPToolSchema,
   screenshotSchema,
+  newTabSchema,
+  listTabsSchema,
+  switchTabSchema,
+  closeTabSchema,
+  goBackSchema,
+  goForwardSchema,
+  reloadSchema,
+  waitForNavigationSchema,
+  scrollPageSchema,
 } from '../schemas.js';
 
 describe('bridgeMessageSchema', () => {
@@ -201,5 +210,115 @@ describe('bridgeErrorPayloadSchema', () => {
       details: { extra: true },
     });
     expect(result.success).toBe(true);
+  });
+});
+
+// --- New v0.4.0 schema tests ---
+
+describe('newTabSchema', () => {
+  it('accepts empty object', () => {
+    expect(newTabSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts optional url', () => {
+    expect(newTabSchema.safeParse({ url: 'https://example.com' }).success).toBe(true);
+  });
+
+  it('rejects invalid url', () => {
+    expect(newTabSchema.safeParse({ url: 'not-a-url' }).success).toBe(false);
+  });
+});
+
+describe('listTabsSchema', () => {
+  it('accepts empty object', () => {
+    expect(listTabsSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('switchTabSchema', () => {
+  it('accepts valid tabId', () => {
+    expect(switchTabSchema.safeParse({ tabId: 1 }).success).toBe(true);
+  });
+
+  it('rejects missing tabId', () => {
+    expect(switchTabSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('closeTabSchema', () => {
+  it('accepts valid tabId', () => {
+    expect(closeTabSchema.safeParse({ tabId: 5 }).success).toBe(true);
+  });
+
+  it('rejects missing tabId', () => {
+    expect(closeTabSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('goBackSchema', () => {
+  it('accepts empty object', () => {
+    expect(goBackSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts optional tabId', () => {
+    expect(goBackSchema.safeParse({ tabId: 2 }).success).toBe(true);
+  });
+});
+
+describe('goForwardSchema', () => {
+  it('accepts empty object', () => {
+    expect(goForwardSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts optional tabId', () => {
+    expect(goForwardSchema.safeParse({ tabId: 3 }).success).toBe(true);
+  });
+});
+
+describe('reloadSchema', () => {
+  it('accepts empty object', () => {
+    expect(reloadSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts optional params', () => {
+    expect(reloadSchema.safeParse({ tabId: 1, bypassCache: true }).success).toBe(true);
+  });
+});
+
+describe('waitForNavigationSchema', () => {
+  it('accepts empty object', () => {
+    expect(waitForNavigationSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts optional params', () => {
+    expect(waitForNavigationSchema.safeParse({ tabId: 1, timeoutMs: 5000 }).success).toBe(true);
+  });
+
+  it('rejects non-positive timeoutMs', () => {
+    expect(waitForNavigationSchema.safeParse({ timeoutMs: 0 }).success).toBe(false);
+    expect(waitForNavigationSchema.safeParse({ timeoutMs: -1 }).success).toBe(false);
+  });
+});
+
+describe('scrollPageSchema', () => {
+  it('accepts empty object', () => {
+    expect(scrollPageSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('accepts direction and amount', () => {
+    expect(scrollPageSchema.safeParse({ direction: 'down', amount: 500 }).success).toBe(true);
+    expect(scrollPageSchema.safeParse({ direction: 'up', amount: 200 }).success).toBe(true);
+  });
+
+  it('accepts ref with snapshotId', () => {
+    expect(scrollPageSchema.safeParse({ ref: '@e5', snapshotId: 'snap-1' }).success).toBe(true);
+  });
+
+  it('rejects invalid ref format', () => {
+    expect(scrollPageSchema.safeParse({ ref: 'bad' }).success).toBe(false);
+  });
+
+  it('rejects invalid direction', () => {
+    expect(scrollPageSchema.safeParse({ direction: 'left' }).success).toBe(false);
   });
 });

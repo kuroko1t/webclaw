@@ -12,9 +12,20 @@ import type {
   ListWebMCPToolsParams,
   InvokeWebMCPToolParams,
   ScreenshotParams,
+  NewTabParams,
+  SwitchTabParams,
+  CloseTabParams,
+  GoBackParams,
+  GoForwardParams,
+  ReloadParams,
+  WaitForNavigationParams,
+  ScrollPageParams,
 } from 'webclaw-shared';
 import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
+
+/** Default timeout for waiting for tab load (30 seconds) */
+const TAB_LOAD_TIMEOUT_MS = 30_000;
 
 export class MessageRouter {
   constructor(private tabManager: TabManager) {}
@@ -55,6 +66,35 @@ export class MessageRouter {
         case 'screenshot':
           result = await this.handleScreenshot(payload as ScreenshotParams);
           break;
+        case 'newTab':
+          result = await this.handleNewTab(payload as NewTabParams);
+          break;
+        case 'listTabs':
+          result = await this.handleListTabs();
+          break;
+        case 'switchTab':
+          result = await this.handleSwitchTab(payload as SwitchTabParams);
+          break;
+        case 'closeTab':
+          result = await this.handleCloseTab(payload as CloseTabParams);
+          break;
+        case 'goBack':
+          result = await this.handleGoBack(payload as GoBackParams);
+          break;
+        case 'goForward':
+          result = await this.handleGoForward(payload as GoForwardParams);
+          break;
+        case 'reload':
+          result = await this.handleReload(payload as ReloadParams);
+          break;
+        case 'waitForNavigation':
+          result = await this.handleWaitForNavigation(
+            payload as WaitForNavigationParams
+          );
+          break;
+        case 'scrollPage':
+          result = await this.handleScrollPage(payload as ScrollPageParams);
+          break;
         case 'ping':
           result = { pong: true, timestamp: Date.now() };
           break;
@@ -64,12 +104,21 @@ export class MessageRouter {
 
       return createResponse(id, method, result);
     } catch (err) {
-      return createError(
-        id,
-        method,
-        'HANDLER_ERROR',
-        err instanceof Error ? err.message : String(err)
-      );
+      const message = err instanceof Error ? err.message : String(err);
+
+      // Classify errors for better diagnostics
+      let code = 'HANDLER_ERROR';
+      if (message.includes('not found') || message.includes('No tab with id')) {
+        code = 'TAB_NOT_FOUND';
+      } else if (message.includes('No active tab') || message.includes('No tab')) {
+        code = 'NO_ACTIVE_TAB';
+      } else if (message.includes('Stale snapshot')) {
+        code = 'STALE_SNAPSHOT';
+      } else if (message.includes('Cannot find a next page')) {
+        code = 'NAVIGATION_TIMEOUT';
+      }
+
+      return createError(id, method, code, message);
     }
   }
 
@@ -107,12 +156,9 @@ export class MessageRouter {
 
   // --- Handler implementations ---
 
-  private async handleNavigate(params: NavigateToParams): Promise<unknown> {
-    const tabId = await this.tabManager.getTargetTabId(params.tabId);
-    await chrome.tabs.update(tabId, { url: params.url });
-
-    // Wait for page load
-    await new Promise<void>((resolve) => {
+  /** Wait for a tab to finish loading */
+  private waitForTabLoad(tabId: number, timeoutMs = TAB_LOAD_TIMEOUT_MS): Promise<void> {
+    return new Promise<void>((resolve) => {
       const listener = (
         updatedTabId: number,
         changeInfo: chrome.tabs.TabChangeInfo
@@ -124,13 +170,17 @@ export class MessageRouter {
       };
       chrome.tabs.onUpdated.addListener(listener);
 
-      // Timeout after 30 seconds
       setTimeout(() => {
         chrome.tabs.onUpdated.removeListener(listener);
         resolve();
-      }, 30_000);
+      }, timeoutMs);
     });
+  }
 
+  private async handleNavigate(params: NavigateToParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    await chrome.tabs.update(tabId, { url: params.url });
+    await this.waitForTabLoad(tabId);
     const tab = await chrome.tabs.get(tabId);
     return { url: tab.url, title: tab.title, tabId };
   }
@@ -205,6 +255,141 @@ export class MessageRouter {
       format: 'png',
     });
     return { dataUrl, tabId };
+  }
+
+  private async handleNewTab(params: NewTabParams): Promise<unknown> {
+    const createProps: chrome.tabs.CreateProperties = {};
+    if (params.url) {
+      createProps.url = params.url;
+    }
+    const tab = await chrome.tabs.create(createProps);
+    if (params.url && tab.id) {
+      await this.waitForTabLoad(tab.id);
+    }
+    const updatedTab = tab.id ? await chrome.tabs.get(tab.id) : tab;
+    return {
+      tabId: updatedTab.id,
+      url: updatedTab.url,
+      title: updatedTab.title,
+    };
+  }
+
+  private async handleListTabs(): Promise<unknown> {
+    const tabs = await chrome.tabs.query({});
+    return {
+      tabs: tabs.map((tab) => ({
+        tabId: tab.id,
+        url: tab.url,
+        title: tab.title,
+        active: tab.active,
+      })),
+    };
+  }
+
+  private async handleSwitchTab(params: SwitchTabParams): Promise<unknown> {
+    await chrome.tabs.update(params.tabId, { active: true });
+    const tab = await chrome.tabs.get(params.tabId);
+    if (tab.windowId !== undefined) {
+      await chrome.windows.update(tab.windowId, { focused: true });
+    }
+    return {
+      tabId: tab.id,
+      url: tab.url,
+      title: tab.title,
+    };
+  }
+
+  private async handleCloseTab(params: CloseTabParams): Promise<unknown> {
+    await chrome.tabs.remove(params.tabId);
+    return { closed: true, tabId: params.tabId };
+  }
+
+  private async handleGoBack(params: GoBackParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    // Use history.back() via executeScript for broader compatibility
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({ length: history.length }),
+    });
+    if (result?.result?.length <= 1) {
+      throw new Error('No previous page in navigation history');
+    }
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => { history.back(); },
+    });
+    // Wait for the navigation to start and complete
+    await new Promise((r) => setTimeout(r, 100));
+    await this.waitForTabLoad(tabId, 10_000);
+    const tab = await chrome.tabs.get(tabId);
+    return { url: tab.url, title: tab.title, tabId };
+  }
+
+  private async handleGoForward(params: GoForwardParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    // Use history.forward() via executeScript for broader compatibility
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => { history.forward(); },
+    });
+    // Wait for the navigation to start and complete
+    await new Promise((r) => setTimeout(r, 100));
+    await this.waitForTabLoad(tabId, 10_000);
+    const tab = await chrome.tabs.get(tabId);
+    return { url: tab.url, title: tab.title, tabId };
+  }
+
+  private async handleReload(params: ReloadParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    await chrome.tabs.reload(tabId, {
+      bypassCache: params.bypassCache ?? false,
+    });
+    await this.waitForTabLoad(tabId);
+    const tab = await chrome.tabs.get(tabId);
+    return { url: tab.url, title: tab.title, tabId };
+  }
+
+  private async handleWaitForNavigation(
+    params: WaitForNavigationParams
+  ): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    const timeoutMs = params.timeoutMs ?? TAB_LOAD_TIMEOUT_MS;
+
+    // If tab is already loaded, return immediately
+    try {
+      const currentTab = await chrome.tabs.get(tabId);
+      if (currentTab.status === 'complete') {
+        return { url: currentTab.url, title: currentTab.title, tabId };
+      }
+    } catch {
+      // Fall through to wait
+    }
+
+    await this.waitForTabLoad(tabId, timeoutMs);
+    const tab = await chrome.tabs.get(tabId);
+    return { url: tab.url, title: tab.title, tabId };
+  }
+
+  private async handleScrollPage(params: ScrollPageParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+
+    if (params.ref) {
+      // Scroll to a specific element
+      if (params.snapshotId) {
+        this.validateSnapshotId(tabId, params.snapshotId);
+      }
+      return this.tabManager.sendToContentScript(tabId, {
+        action: 'scrollToElement',
+        ref: params.ref,
+      });
+    }
+
+    // Scroll the page by direction/amount
+    return this.tabManager.sendToContentScript(tabId, {
+      action: 'scrollPage',
+      direction: params.direction ?? 'down',
+      amount: params.amount,
+    });
   }
 
   /** Validate that the snapshot ID matches the current tab snapshot */

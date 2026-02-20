@@ -3,23 +3,40 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Mock chrome APIs
 const mockTabsUpdate = vi.fn();
 const mockTabsGet = vi.fn();
+const mockTabsCreate = vi.fn();
+const mockTabsRemove = vi.fn();
+const mockTabsQuery = vi.fn();
+const mockTabsGoBack = vi.fn();
+const mockTabsGoForward = vi.fn();
+const mockTabsReload = vi.fn();
 const mockTabsOnUpdated = {
   addListener: vi.fn(),
   removeListener: vi.fn(),
 };
 const mockCaptureVisibleTab = vi.fn();
 const mockRuntimeSendMessage = vi.fn();
+const mockWindowsUpdate = vi.fn();
+const mockScriptingExecuteScript = vi.fn();
 
 vi.stubGlobal('chrome', {
   tabs: {
     update: mockTabsUpdate,
     get: mockTabsGet,
+    create: mockTabsCreate,
+    remove: mockTabsRemove,
+    query: mockTabsQuery,
+    goBack: mockTabsGoBack,
+    goForward: mockTabsGoForward,
+    reload: mockTabsReload,
     onUpdated: mockTabsOnUpdated,
-    query: vi.fn(),
     sendMessage: vi.fn(),
+    captureVisibleTab: mockCaptureVisibleTab,
+  },
+  windows: {
+    update: mockWindowsUpdate,
   },
   scripting: {
-    executeScript: vi.fn(),
+    executeScript: mockScriptingExecuteScript,
   },
   runtime: {
     sendMessage: mockRuntimeSendMessage,
@@ -228,6 +245,205 @@ describe('MessageRouter', () => {
       });
 
       expect(result.type).toBe('response');
+    });
+
+    it('routes newTab and creates a new tab', async () => {
+      mockTabsCreate.mockResolvedValue({ id: 10, url: 'https://example.com', title: 'Example' });
+      mockTabsGet.mockResolvedValue({ id: 10, url: 'https://example.com', title: 'Example' });
+      mockTabsOnUpdated.addListener.mockImplementation((listener: Function) => {
+        setTimeout(() => listener(10, { status: 'complete' }), 0);
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-newtab',
+        type: 'request',
+        method: 'newTab',
+        payload: { url: 'https://example.com' },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabsCreate).toHaveBeenCalledWith({ url: 'https://example.com' });
+    });
+
+    it('routes listTabs and returns tab list', async () => {
+      mockTabsQuery.mockResolvedValue([
+        { id: 1, url: 'https://a.com', title: 'A', active: true },
+        { id: 2, url: 'https://b.com', title: 'B', active: false },
+      ]);
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-listtabs',
+        type: 'request',
+        method: 'listTabs',
+        payload: {},
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabsQuery).toHaveBeenCalledWith({});
+      const payload = result.payload as { tabs: Array<{ tabId: number }> };
+      expect(payload.tabs).toHaveLength(2);
+    });
+
+    it('routes switchTab and activates tab', async () => {
+      mockTabsUpdate.mockResolvedValue({});
+      mockTabsGet.mockResolvedValue({ id: 5, url: 'https://c.com', title: 'C', windowId: 1 });
+      mockWindowsUpdate.mockResolvedValue({});
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-switch',
+        type: 'request',
+        method: 'switchTab',
+        payload: { tabId: 5 },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabsUpdate).toHaveBeenCalledWith(5, { active: true });
+    });
+
+    it('routes closeTab and removes tab', async () => {
+      mockTabsRemove.mockResolvedValue(undefined);
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-close',
+        type: 'request',
+        method: 'closeTab',
+        payload: { tabId: 3 },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabsRemove).toHaveBeenCalledWith(3);
+    });
+
+    it('routes goBack via executeScript history.back()', async () => {
+      // First call: history.length check; second call: history.back()
+      mockScriptingExecuteScript
+        .mockResolvedValueOnce([{ result: { length: 3 } }])
+        .mockResolvedValueOnce([{ result: undefined }]);
+      mockTabsGet.mockResolvedValue({ id: 1, url: 'https://prev.com', title: 'Prev' });
+      mockTabsOnUpdated.addListener.mockImplementation((listener: Function) => {
+        setTimeout(() => listener(1, { status: 'complete' }), 0);
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-back',
+        type: 'request',
+        method: 'goBack',
+        payload: {},
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockScriptingExecuteScript).toHaveBeenCalledTimes(2);
+      expect(mockScriptingExecuteScript).toHaveBeenCalledWith(
+        expect.objectContaining({ target: { tabId: 1 } })
+      );
+    });
+
+    it('routes goForward via executeScript history.forward()', async () => {
+      mockScriptingExecuteScript.mockResolvedValue([{ result: undefined }]);
+      mockTabsGet.mockResolvedValue({ id: 1, url: 'https://next.com', title: 'Next' });
+      mockTabsOnUpdated.addListener.mockImplementation((listener: Function) => {
+        setTimeout(() => listener(1, { status: 'complete' }), 0);
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-forward',
+        type: 'request',
+        method: 'goForward',
+        payload: {},
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockScriptingExecuteScript).toHaveBeenCalledWith(
+        expect.objectContaining({ target: { tabId: 1 } })
+      );
+    });
+
+    it('routes reload and waits for load', async () => {
+      mockTabsReload.mockResolvedValue(undefined);
+      mockTabsGet.mockResolvedValue({ id: 1, url: 'https://reloaded.com', title: 'Reloaded' });
+      mockTabsOnUpdated.addListener.mockImplementation((listener: Function) => {
+        setTimeout(() => listener(1, { status: 'complete' }), 0);
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-reload',
+        type: 'request',
+        method: 'reload',
+        payload: { bypassCache: true },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabsReload).toHaveBeenCalledWith(1, { bypassCache: true });
+    });
+
+    it('routes waitForNavigation (returns immediately if already loaded)', async () => {
+      mockTabsGet.mockResolvedValue({ id: 1, url: 'https://loaded.com', title: 'Loaded', status: 'complete' });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-wait',
+        type: 'request',
+        method: 'waitForNavigation',
+        payload: { timeoutMs: 5000 },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect((result.payload as { url: string }).url).toBe('https://loaded.com');
+    });
+
+    it('routes scrollPage to content script', async () => {
+      await router.handleBridgeRequest({
+        id: 'req-scroll',
+        type: 'request',
+        method: 'scrollPage',
+        payload: { direction: 'down', amount: 500 },
+        timestamp: Date.now(),
+      });
+
+      expect(mockTabManager.sendToContentScript).toHaveBeenCalledWith(1, {
+        action: 'scrollPage',
+        direction: 'down',
+        amount: 500,
+      });
+    });
+
+    it('routes scrollPage with ref to scrollToElement', async () => {
+      await router.handleBridgeRequest({
+        id: 'req-scroll-ref',
+        type: 'request',
+        method: 'scrollPage',
+        payload: { ref: '@e5', snapshotId: 'snap-1' },
+        timestamp: Date.now(),
+      });
+
+      expect(mockTabManager.sendToContentScript).toHaveBeenCalledWith(1, {
+        action: 'scrollToElement',
+        ref: '@e5',
+      });
+    });
+
+    it('classifies TAB_NOT_FOUND errors', async () => {
+      mockTabsRemove.mockRejectedValue(
+        new Error('No tab with id: 999')
+      );
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-notfound',
+        type: 'request',
+        method: 'closeTab',
+        payload: { tabId: 999 },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('error');
+      expect((result.payload as { code: string }).code).toBe('TAB_NOT_FOUND');
     });
 
     it('catches handler errors and returns error response', async () => {

@@ -28,3 +28,31 @@ export const WEBSOCKET_DEFAULT_PORT = 18080;
 
 /** Environment variable to override the WebSocket port */
 export const WEBSOCKET_PORT_ENV = 'WEBCLAW_PORT';
+
+/** Operation-specific timeouts in milliseconds */
+export const OPERATION_TIMEOUTS: Record<string, number> = {
+  navigate: 30_000,
+  newTab: 30_000,
+  goBack: 30_000,
+  goForward: 30_000,
+  reload: 30_000,
+  waitForNavigation: 30_000,
+  snapshot: 15_000,
+  click: 10_000,
+  typeText: 10_000,
+  selectOption: 10_000,
+  screenshot: 15_000,
+  listTabs: 5_000,
+  switchTab: 5_000,
+  closeTab: 5_000,
+  listWebMCPTools: 10_000,
+  invokeWebMCPTool: 30_000,
+  scrollPage: 10_000,
+  ping: 5_000,
+};
+
+/** Maximum number of retry attempts for transient failures */
+export const MAX_RETRY_ATTEMPTS = 2;
+
+/** Base delay in ms for exponential backoff between retries */
+export const RETRY_BASE_DELAY_MS = 500;

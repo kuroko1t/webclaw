@@ -49,7 +49,16 @@ export type BridgeMethod =
   | 'listWebMCPTools'
   | 'invokeWebMCPTool'
   | 'screenshot'
-  | 'ping';
+  | 'ping'
+  | 'newTab'
+  | 'listTabs'
+  | 'switchTab'
+  | 'closeTab'
+  | 'goBack'
+  | 'goForward'
+  | 'reload'
+  | 'waitForNavigation'
+  | 'scrollPage';
 
 /** Chunked message for large payloads (>1MB Native Messaging limit) */
 export interface ChunkedMessage {

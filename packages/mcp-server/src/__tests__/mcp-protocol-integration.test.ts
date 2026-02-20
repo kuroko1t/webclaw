@@ -19,20 +19,23 @@ function createMockWsClient(): {
 } {
   let handler: ((method: string, payload: unknown) => BridgeMessage) | null = null;
 
+  const requestImpl = vi.fn(async (method: BridgeMethod, payload: unknown = {}) => {
+    if (handler) {
+      return handler(method, payload);
+    }
+    // Default: return a response
+    return {
+      id: 'mock-id',
+      type: 'response' as const,
+      method,
+      payload: {},
+      timestamp: Date.now(),
+    };
+  });
+
   const wsClient = {
-    request: vi.fn(async (method: BridgeMethod, payload: unknown = {}) => {
-      if (handler) {
-        return handler(method, payload);
-      }
-      // Default: return a response
-      return {
-        id: 'mock-id',
-        type: 'response' as const,
-        method,
-        payload: {},
-        timestamp: Date.now(),
-      };
-    }),
+    request: requestImpl,
+    requestWithRetry: requestImpl,
     isConnected: vi.fn(() => true),
     close: vi.fn(async () => {}),
   } as unknown as WebSocketClient;
@@ -52,6 +55,15 @@ const EXPECTED_TOOLS = [
   'list_webmcp_tools',
   'invoke_webmcp_tool',
   'screenshot',
+  'new_tab',
+  'list_tabs',
+  'switch_tab',
+  'close_tab',
+  'go_back',
+  'go_forward',
+  'reload',
+  'wait_for_navigation',
+  'scroll_page',
 ];
 
 describe('MCP Protocol integration (in-process)', () => {
@@ -79,13 +91,13 @@ describe('MCP Protocol integration (in-process)', () => {
     const serverVersion = mcpClient.getServerVersion();
     expect(serverVersion).toBeDefined();
     expect(serverVersion!.name).toBe('webclaw');
-    expect(serverVersion!.version).toBe('0.3.1');
+    expect(serverVersion!.version).toBe('0.4.0');
   });
 
   // --- tools/list ---
-  it('lists all 8 tools', async () => {
+  it('lists all 17 tools', async () => {
     const result = await mcpClient.listTools();
-    expect(result.tools).toHaveLength(8);
+    expect(result.tools).toHaveLength(17);
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([...EXPECTED_TOOLS].sort());
   });

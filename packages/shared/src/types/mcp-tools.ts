@@ -62,3 +62,52 @@ export interface ScreenshotResult {
   width: number;
   height: number;
 }
+
+/** Parameters for new_tab tool */
+export interface NewTabParams {
+  url?: string;
+}
+
+/** Parameters for list_tabs tool */
+export interface ListTabsParams {}
+
+/** Parameters for switch_tab tool */
+export interface SwitchTabParams {
+  tabId: number;
+}
+
+/** Parameters for close_tab tool */
+export interface CloseTabParams {
+  tabId: number;
+}
+
+/** Parameters for go_back tool */
+export interface GoBackParams {
+  tabId?: number;
+}
+
+/** Parameters for go_forward tool */
+export interface GoForwardParams {
+  tabId?: number;
+}
+
+/** Parameters for reload tool */
+export interface ReloadParams {
+  tabId?: number;
+  bypassCache?: boolean;
+}
+
+/** Parameters for wait_for_navigation tool */
+export interface WaitForNavigationParams {
+  tabId?: number;
+  timeoutMs?: number;
+}
+
+/** Parameters for scroll_page tool */
+export interface ScrollPageParams {
+  tabId?: number;
+  direction?: 'up' | 'down';
+  amount?: number;
+  ref?: string;
+  snapshotId?: string;
+}

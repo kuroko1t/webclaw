@@ -71,3 +71,45 @@ export const screenshotSchema = z.object({
   tabId: z.number().int().optional(),
   fullPage: z.boolean().optional(),
 });
+
+// --- New v0.4.0 schemas ---
+
+export const newTabSchema = z.object({
+  url: z.string().url().optional(),
+});
+
+export const listTabsSchema = z.object({});
+
+export const switchTabSchema = z.object({
+  tabId: z.number().int(),
+});
+
+export const closeTabSchema = z.object({
+  tabId: z.number().int(),
+});
+
+export const goBackSchema = z.object({
+  tabId: z.number().int().optional(),
+});
+
+export const goForwardSchema = z.object({
+  tabId: z.number().int().optional(),
+});
+
+export const reloadSchema = z.object({
+  tabId: z.number().int().optional(),
+  bypassCache: z.boolean().optional(),
+});
+
+export const waitForNavigationSchema = z.object({
+  tabId: z.number().int().optional(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+
+export const scrollPageSchema = z.object({
+  tabId: z.number().int().optional(),
+  direction: z.enum(['up', 'down']).optional(),
+  amount: z.number().int().positive().optional(),
+  ref: z.string().regex(/^@e\d+$/).optional(),
+  snapshotId: z.string().min(1).optional(),
+});
