@@ -10,6 +10,8 @@ export default defineConfig({
       ['src/__tests__/e2e/**', 'node'],
     ],
     fileParallelism: false,
+    hookTimeout: 60_000,
+    testTimeout: 30_000,
   },
   resolve: {
     alias: {

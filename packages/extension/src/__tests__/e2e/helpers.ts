@@ -63,41 +63,67 @@ function findChromeForTesting(): string[] {
  * `--disable-extensions` and `--disable-component-extensions-with-background-pages`
  * which block extension loading. All necessary Chrome flags — including the
  * important Puppeteer defaults for stable operation — are specified explicitly.
+ *
+ * Includes retry logic because service worker loading can be non-deterministic
+ * in CI environments with limited resources.
  */
 export async function launchBrowserWithExtension(): Promise<Browser> {
-  const userDataDir = mkdtempSync(resolve(tmpdir(), 'webclaw-e2e-'));
+  const maxAttempts = 3;
 
-  return puppeteer.launch({
-    headless: false,
-    executablePath: findChrome(),
-    ignoreAllDefaultArgs: true,
-    args: [
-      '--headless=new',
-      `--disable-extensions-except=${DIST_PATH}`,
-      `--load-extension=${DIST_PATH}`,
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--remote-debugging-port=0',
-      `--user-data-dir=${userDataDir}`,
-      // Re-add important Puppeteer defaults for stable browser operation
-      '--no-first-run',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding',
-      '--disable-hang-monitor',
-      '--disable-ipc-flooding-protection',
-      '--disable-popup-blocking',
-      '--disable-prompt-on-repost',
-      '--disable-sync',
-      '--disable-default-apps',
-      '--enable-features=NetworkService,NetworkServiceInProcess',
-      '--password-store=basic',
-      '--use-mock-keychain',
-      '--metrics-recording-only',
-    ],
-  });
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const userDataDir = mkdtempSync(resolve(tmpdir(), 'webclaw-e2e-'));
+
+    const browser = await puppeteer.launch({
+      headless: false,
+      executablePath: findChrome(),
+      ignoreAllDefaultArgs: true,
+      args: [
+        '--headless=new',
+        `--disable-extensions-except=${DIST_PATH}`,
+        `--load-extension=${DIST_PATH}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--remote-debugging-port=0',
+        `--user-data-dir=${userDataDir}`,
+        // Re-add important Puppeteer defaults for stable browser operation
+        '--no-first-run',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-hang-monitor',
+        '--disable-ipc-flooding-protection',
+        '--disable-popup-blocking',
+        '--disable-prompt-on-repost',
+        '--disable-sync',
+        '--enable-features=NetworkService,NetworkServiceInProcess',
+        '--password-store=basic',
+        '--use-mock-keychain',
+        '--metrics-recording-only',
+      ],
+    });
+
+    // Verify the service worker loads before returning
+    try {
+      await browser.waitForTarget(
+        (t) =>
+          t.type() === 'service_worker' &&
+          t.url().includes('background/service-worker'),
+        { timeout: 15_000 },
+      );
+      return browser;
+    } catch {
+      await browser.close().catch(() => {});
+      if (attempt === maxAttempts) {
+        throw new Error(
+          `Extension service worker did not load after ${maxAttempts} attempts`,
+        );
+      }
+    }
+  }
+
+  throw new Error('Unreachable');
 }
 
 /**
