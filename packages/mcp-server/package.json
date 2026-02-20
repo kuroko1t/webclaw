@@ -1,6 +1,6 @@
 {
   "name": "webclaw-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "WebClaw MCP Server - WebMCP-native browser agent for Chrome",
   "type": "module",
   "license": "MIT",

@@ -87,7 +87,7 @@ describe('MCP Server stdio integration', () => {
     ) as any;
     expect(initResponse).toBeDefined();
     expect(initResponse.result.serverInfo.name).toBe('webclaw');
-    expect(initResponse.result.serverInfo.version).toBe('0.1.0');
+    expect(initResponse.result.serverInfo.version).toBe('0.2.0');
   }, 20000);
 
   it('lists 8 tools via JSON-RPC after initialization', async () => {
