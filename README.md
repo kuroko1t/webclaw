@@ -52,8 +52,8 @@ flowchart TB
 | `click` | `ref` | Click an element by its `@ref` label |
 | `type_text` | `ref`, `text` | Type text into an input/textarea by `@ref` |
 | `select_option` | `ref`, `value` | Select a dropdown option by `@ref` |
-| `list_webmcp_tools` | | List WebMCP tools declared by the page |
-| `invoke_webmcp_tool` | `toolName`, `args?` | Call a WebMCP tool on the page |
+| `list_webmcp_tools` | | Discover tools on the page (native WebMCP + auto-synthesized from buttons/forms) |
+| `invoke_webmcp_tool` | `toolName`, `args?` | Invoke a discovered tool (native or synthesized) |
 | `screenshot` | | Capture the visible area of the active tab |
 
 ## Quick Start
