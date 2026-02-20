@@ -4,12 +4,7 @@
 [![npm](https://img.shields.io/npm/v/webclaw-mcp)](https://www.npmjs.com/package/webclaw-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The first **WebMCP-native** browser agent. Enables AI assistants like Claude to interact with web pages through a Chrome extension and MCP protocol.
-
-<!-- TODO: デモGIFを撮影して docs/demo.gif に配置後、以下のコメントを外す -->
-<!-- <p align="center">
-  <img src="docs/demo.gif" alt="WebClaw Demo" width="720">
-</p> -->
+The first **WebMCP-native** browser agent. Enables AI assistants like Claude to interact with web pages through a Chrome extension and MCP server.
 
 ## What is WebClaw?
 
@@ -17,6 +12,8 @@ WebClaw bridges AI assistants and the browser using two approaches:
 
 1. **WebMCP Native** - Discovers and invokes tools declared by websites via the W3C `navigator.modelContext` API (Chrome 146+)
 2. **DOM Fallback** - Automatically synthesizes tools from forms, buttons, and inputs on any website, plus provides compact accessibility tree snapshots with `@ref` labels for precise element targeting
+
+Unlike CDP-based alternatives (browser-use, Playwright MCP), WebClaw runs inside a **real Chrome extension** — meaning it has access to the user's logged-in sessions, cookies, and installed extensions, and is **resistant to bot detection**.
 
 ## Architecture
 
@@ -48,18 +45,18 @@ flowchart TB
 
 ## MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `navigate_to` | Navigate to a URL |
-| `page_snapshot` | Get compact @ref accessibility tree |
-| `click` | Click element by @ref |
-| `type_text` | Type into input by @ref |
-| `select_option` | Select dropdown option by @ref |
-| `list_webmcp_tools` | List page's WebMCP tools |
-| `invoke_webmcp_tool` | Call a WebMCP tool |
-| `screenshot` | Capture visible tab |
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `navigate_to` | `url` | Navigate to a URL in the active tab |
+| `page_snapshot` | `maxTokens?` | Get a compact accessibility tree with `@ref` labels |
+| `click` | `ref` | Click an element by its `@ref` label |
+| `type_text` | `ref`, `text` | Type text into an input/textarea by `@ref` |
+| `select_option` | `ref`, `value` | Select a dropdown option by `@ref` |
+| `list_webmcp_tools` | | List WebMCP tools declared by the page |
+| `invoke_webmcp_tool` | `toolName`, `args?` | Call a WebMCP tool on the page |
+| `screenshot` | | Capture the visible area of the active tab |
 
-## Setup
+## Quick Start
 
 ### Prerequisites
 
@@ -79,10 +76,10 @@ pnpm build
 ### 2. Load Chrome Extension
 
 1. Open `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
+2. Enable **Developer mode**
+3. Click **Load unpacked**
 4. Select `packages/extension/dist/`
-5. Note the extension ID shown on the card
+5. Note the **extension ID** shown on the card
 
 ### 3. Register Native Messaging Host
 
@@ -90,9 +87,12 @@ pnpm build
 npx webclaw-mcp install
 ```
 
-This writes the Native Messaging host manifest and prints the Claude Desktop config. After running, update the `allowed_origins` in the host manifest with your extension ID.
+This writes the Native Messaging host manifest and prints the MCP client config. After running, update the `allowed_origins` in the host manifest with your extension ID.
 
-### 4. Configure Claude Desktop
+### 4. Configure your MCP Client
+
+<details>
+<summary><b>Claude Desktop</b></summary>
 
 Add to your `claude_desktop_config.json`:
 
@@ -110,16 +110,77 @@ Add to your `claude_desktop_config.json`:
 Config file locations:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Linux: `~/.config/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+</details>
+
+<details>
+<summary><b>Claude Code</b></summary>
+
+```bash
+claude mcp add webclaw -- npx -y webclaw-mcp
+```
+
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+Add to `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "webclaw": {
+      "command": "npx",
+      "args": ["-y", "webclaw-mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>VS Code (Copilot)</b></summary>
+
+Add to `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "webclaw": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "webclaw-mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "webclaw": {
+      "command": "npx",
+      "args": ["-y", "webclaw-mcp"]
+    }
+  }
+}
+```
+
+</details>
 
 ### 5. Verify
 
-Restart Claude Desktop. Ask it to navigate to a website - you should see activity in the extension's Side Panel.
-
-<!-- TODO: Side Panelのスクリーンショットを撮影して docs/sidepanel.png に配置後、以下のコメントを外す -->
-<!-- <p align="center">
-  <img src="docs/sidepanel.png" alt="WebClaw Side Panel" width="360">
-</p> -->
+Restart your MCP client. Ask it to navigate to a website — you should see activity in the extension's Side Panel.
 
 ## Usage Example
 
@@ -129,10 +190,10 @@ In Claude Desktop:
 
 Claude will:
 1. `navigate_to("https://www.google.com")`
-2. `page_snapshot()` - get the @ref tree
-3. `click @e4` - focus search box
-4. `type_text @e4 "WebMCP"` - type query
-5. `click @e5` - click search button
+2. `page_snapshot()` — get the `@ref` tree
+3. `click @e4` — focus search box
+4. `type_text @e4 "WebMCP"` — type query
+5. `click @e5` — click search button
 
 The Side Panel shows all tool calls in real-time.
 
@@ -146,6 +207,16 @@ npx serve .
 ```
 
 Open `http://localhost:3000` in Chrome, then ask Claude to interact with the todo list. It will discover the native `add_todo`, `toggle_todo`, `delete_todo`, and `list_todos` tools via WebMCP.
+
+## How It Differs from Alternatives
+
+| | WebClaw | browser-use | Playwright MCP |
+|---|---|---|---|
+| WebMCP native | Yes | No | No |
+| Uses real browser | Yes (extension) | No (CDP) | No (Playwright) |
+| Bot detection | Resistant | Vulnerable | Vulnerable |
+| User's session | Yes | No | No |
+| Page snapshots | `@ref` A11y tree | Screenshots | DOM/Screenshots |
 
 ## Development
 
@@ -167,16 +238,37 @@ examples/
   webmcp-demo-site/  WebMCP-enabled Todo app for testing
 ```
 
-## How It Differs from Alternatives
+## Troubleshooting
 
-| | WebClaw | browser-use | Playwright MCP |
-|---|---|---|---|
-| WebMCP native | Yes | No | No |
-| Uses real browser | Yes (extension) | No (CDP) | No (Playwright) |
-| Bot detection | Resistant | Vulnerable | Vulnerable |
-| User's session | Yes | No | No |
-| Page snapshots | @ref A11y tree | Screenshots | DOM/Screenshots |
+**Extension service worker not detected**
+- Make sure the extension is loaded and enabled in `chrome://extensions/`
+- Check that the extension ID in the Native Messaging host manifest matches the one shown in Chrome
+
+**MCP client cannot connect**
+- Run `npx webclaw-mcp install` again to regenerate the host manifest
+- Ensure `npx webclaw-mcp` runs successfully from your terminal
+- Restart your MCP client after updating the config
+
+**Content script not injecting**
+- Content scripts only inject into `http://` and `https://` pages (not `chrome://`, `file://`, etc.)
+- Try refreshing the page after loading the extension
+
+**WebMCP tools not discovered**
+- Native WebMCP requires Chrome 146+ with the `navigator.modelContext` API
+- Verify the page declares tools via `navigator.modelContext.addTool()` or `<link rel="webmcp-manifest">`
+
+## Contributing
+
+Contributions are welcome! Please open an issue to discuss your idea before submitting a pull request.
+
+```bash
+git clone https://github.com/kuroko1t/webclaw.git
+cd webclaw
+pnpm install
+pnpm build
+pnpm test         # Run all tests before submitting
+```
 
 ## License
 
-MIT
+[MIT](LICENSE)
