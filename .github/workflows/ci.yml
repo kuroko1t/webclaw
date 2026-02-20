@@ -52,11 +52,12 @@ jobs:
       - run: pnpm build
 
       - name: Debug - verify extension loads in Chrome
+        working-directory: packages/extension
         run: |
           node -e "
             const puppeteer = require('puppeteer-core');
             const path = require('path');
-            const DIST = path.resolve('packages/extension/dist');
+            const DIST = path.resolve('dist');
             (async () => {
               console.log('Launching Chrome:', process.env.CHROME_PATH);
               console.log('Extension path:', DIST);
@@ -68,15 +69,17 @@ jobs:
               });
               console.log('Browser launched');
               const targets = await browser.targets();
-              console.log('Targets:', targets.map(t => t.type() + ' ' + t.url()));
-              const sw = await browser.waitForTarget(t => t.type() === 'service_worker', { timeout: 10000 }).catch(e => null);
-              console.log('Service worker:', sw ? sw.url() : 'NOT FOUND');
-              const page = await browser.newPage();
-              await page.goto('data:text/html,<h1>test</h1>');
-              console.log('Page loaded');
+              console.log('All targets:', targets.map(t => t.type() + ' ' + t.url()));
+              try {
+                const sw = await browser.waitForTarget(t => t.type() === 'service_worker', { timeout: 15000 });
+                console.log('Service worker FOUND:', sw.url());
+              } catch (e) {
+                console.log('Service worker NOT FOUND within 15s');
+                const targets2 = await browser.targets();
+                console.log('Final targets:', targets2.map(t => t.type() + ' ' + t.url()));
+              }
               await browser.close();
-              console.log('Success');
-            })().catch(e => { console.error(e); process.exit(1); });
+            })().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
           "
         timeout-minutes: 1
 
