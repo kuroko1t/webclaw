@@ -115,11 +115,20 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ### 2. Load the Chrome extension
 
-1. Open `chrome://extensions/`
-2. Enable **Developer mode**
-3. Click **Load unpacked** → select `packages/extension/dist/`
+1. Download [`webclaw-extension-v0.4.0.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.4.0.zip) and unzip
+2. Open `chrome://extensions/` → enable **Developer mode**
+3. Click **Load unpacked** → select the `dist/` folder
 
-> Or build from source: `git clone https://github.com/kuroko1t/webclaw.git && cd webclaw && pnpm install && pnpm build`
+<details>
+<summary>Or build from source</summary>
+
+```bash
+git clone https://github.com/kuroko1t/webclaw.git && cd webclaw && pnpm install && pnpm build
+```
+
+Then load `packages/extension/dist/` as above.
+
+</details>
 
 ### 3. Try it
 
