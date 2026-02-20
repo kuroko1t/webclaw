@@ -205,18 +205,40 @@ Restart your MCP client and ask the AI to navigate to a website. Chrome will be 
 |----------|---------|-------------|
 | `WEBCLAW_PORT` | `18080` | WebSocket port for MCP server ↔ extension communication |
 
-## Usage Example
+## Demo
 
-In Claude Desktop:
+Ask your AI assistant: **"Go to Wikipedia and search for WebMCP"**
 
-> "Go to google.com and search for WebMCP"
+The AI uses WebClaw's MCP tools to interact with the browser step-by-step:
 
-Claude will:
-1. `navigate_to("https://www.google.com")`
-2. `page_snapshot()` — get the `@ref` tree
-3. `click @e4` — focus search box
-4. `type_text @e4 "WebMCP"` — type query
-5. `click @e5` — click search button
+```
+1. navigate_to("https://en.wikipedia.org")
+2. page_snapshot()                          → get the @ref tree (see below)
+3. type_text(@e3, "WebMCP")                 → type into search box
+4. click(@e4)                               → click Search button
+```
+
+### `page_snapshot` output — compact accessibility tree with `@ref` labels
+
+```
+[page "Wikipedia, the free encyclopedia"]
+  [banner]
+    [search]
+      [form]
+        [@e3 searchbox "Search Wikipedia"]    ← AI targets this by @ref
+        [@e4 button "Search"]                 ← and clicks this
+    [nav "Personal tools"]
+      [@e5 link "Donate"]
+      [@e6 link "Create account"]
+      [@e7 link "Log in"]
+  [main]
+    [heading[1] "Welcome to Wikipedia"]
+    [group]
+      [heading[2] "From today's featured article"]
+      ...
+```
+
+Every interactive element gets a stable `@ref` label. The AI reads the tree, picks the right `@ref`, and calls `click` / `type_text` / `select_option` — no pixel coordinates, no fragile CSS selectors, no screenshots needed for navigation.
 
 The Side Panel shows all tool calls in real-time.
 
