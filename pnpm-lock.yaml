@@ -50,6 +50,9 @@ importers:
       webclaw-shared:
         specifier: workspace:*
         version: link:../shared
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -57,6 +60,9 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.33
+      '@types/ws':
+        specifier: ^8.5.0
+        version: 8.18.1
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
@@ -417,6 +423,9 @@ packages:
 
   '@types/node@20.19.33':
     resolution: {integrity: sha512-Rs1bVAIdBs5gbTIKza/tgpMuG1k3U/UMJLWecIMxNdJFDMzcM5LOiLVRYh3PilWEYDIeUDv7bpiHPLPsbydGcw==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@types/yauzl@2.10.3':
     resolution: {integrity: sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==}
@@ -1671,6 +1680,10 @@ snapshots:
   '@types/node@20.19.33':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 20.19.33
 
   '@types/yauzl@2.10.3':
     dependencies:

@@ -34,7 +34,7 @@ describe('manifest.json MV3 compliance', () => {
   });
 
   it('has required permissions', () => {
-    const required = ['activeTab', 'tabs', 'scripting', 'nativeMessaging', 'alarms'];
+    const required = ['activeTab', 'tabs', 'scripting', 'alarms'];
     for (const perm of required) {
       expect(manifest.permissions).toContain(perm);
     }

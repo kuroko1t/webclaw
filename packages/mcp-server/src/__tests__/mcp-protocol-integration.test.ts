@@ -3,52 +3,44 @@
  *
  * Uses MCP SDK Client + InMemoryTransport to perform a real protocol
  * handshake and tool invocations against the actual server, with a
- * mocked NativeMessagingClient.
+ * mocked WebSocketClient.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { PassThrough } from 'node:stream';
 import { createWebClawServer } from '../server.js';
-import { NativeMessagingClient } from '../native-messaging-client.js';
+import type { WebSocketClient } from '../ws-client.js';
+import type { BridgeMessage, BridgeMethod } from 'webclaw-shared';
 
-/** Helper: encode a native-messaging–format response and push it to the stdin PassThrough. */
-function sendNativeResponse(
-  stdin: PassThrough,
-  id: string,
-  method: string,
-  payload: unknown
-): void {
-  const msg = JSON.stringify({ id, type: 'response', method, payload, timestamp: Date.now() });
-  const body = Buffer.from(msg, 'utf-8');
-  const header = Buffer.alloc(4);
-  header.writeUInt32LE(body.length, 0);
-  stdin.write(Buffer.concat([header, body]));
-}
-
-function createMockNativeClient(): {
-  client: NativeMessagingClient;
-  stdin: PassThrough;
-  stdout: PassThrough;
+/** Create a mock WebSocketClient that resolves requests with a handler. */
+function createMockWsClient(): {
+  wsClient: WebSocketClient;
+  setHandler: (fn: (method: string, payload: unknown) => BridgeMessage) => void;
 } {
-  const stdin = new PassThrough();
-  const stdout = new PassThrough();
-  const client = new NativeMessagingClient({ stdin, stdout });
-  return { client, stdin, stdout };
-}
+  let handler: ((method: string, payload: unknown) => BridgeMessage) | null = null;
 
-/** Decode outgoing native-messaging messages captured from stdout. */
-function decodeNativeMessages(buf: Buffer): Array<{ id: string; method: string; payload: unknown }> {
-  const messages: Array<{ id: string; method: string; payload: unknown }> = [];
-  let offset = 0;
-  while (offset + 4 <= buf.length) {
-    const len = buf.readUInt32LE(offset);
-    if (offset + 4 + len > buf.length) break;
-    const data = buf.subarray(offset + 4, offset + 4 + len);
-    messages.push(JSON.parse(data.toString('utf-8')));
-    offset += 4 + len;
-  }
-  return messages;
+  const wsClient = {
+    request: vi.fn(async (method: BridgeMethod, payload: unknown = {}) => {
+      if (handler) {
+        return handler(method, payload);
+      }
+      // Default: return a response
+      return {
+        id: 'mock-id',
+        type: 'response' as const,
+        method,
+        payload: {},
+        timestamp: Date.now(),
+      };
+    }),
+    isConnected: vi.fn(() => true),
+    close: vi.fn(async () => {}),
+  } as unknown as WebSocketClient;
+
+  return {
+    wsClient,
+    setHandler: (fn) => { handler = fn; },
+  };
 }
 
 const EXPECTED_TOOLS = [
@@ -64,17 +56,12 @@ const EXPECTED_TOOLS = [
 
 describe('MCP Protocol integration (in-process)', () => {
   let mcpClient: Client;
-  let nativeStdin: PassThrough;
-  let nativeStdout: PassThrough;
-  let nativeClient: NativeMessagingClient;
+  let mockWs: ReturnType<typeof createMockWsClient>;
 
   beforeAll(async () => {
-    const mock = createMockNativeClient();
-    nativeStdin = mock.stdin;
-    nativeStdout = mock.stdout;
-    nativeClient = mock.client;
+    mockWs = createMockWsClient();
 
-    const server = createWebClawServer({ nativeClient });
+    const server = createWebClawServer({ wsClient: mockWs.wsClient });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
     mcpClient = new Client({ name: 'test-client', version: '0.0.1' });
@@ -85,7 +72,6 @@ describe('MCP Protocol integration (in-process)', () => {
 
   afterAll(async () => {
     await mcpClient.close();
-    nativeClient.disconnect();
   });
 
   // --- Handshake ---
@@ -169,101 +155,70 @@ describe('MCP Protocol integration (in-process)', () => {
     expect(result.isError).toBe(true);
   });
 
-  // --- Tool invocation with mock NativeMessagingClient ---
-  it('navigate_to returns formatted response from native client', async () => {
-    // Capture outgoing request to respond to it
-    const chunks: Buffer[] = [];
-    nativeStdout.on('data', (chunk: Buffer) => chunks.push(chunk));
+  // --- Tool invocation with mock WebSocketClient ---
+  it('navigate_to returns formatted response from ws client', async () => {
+    mockWs.setHandler((method) => ({
+      id: 'mock-id',
+      type: 'response',
+      method,
+      payload: {
+        url: 'https://example.com',
+        title: 'Example Domain',
+        tabId: 1,
+      },
+      timestamp: Date.now(),
+    }));
 
-    const toolPromise = mcpClient.callTool({
+    const result = await mcpClient.callTool({
       name: 'navigate_to',
       arguments: { url: 'https://example.com' },
     });
 
-    // Wait for the request to be sent through native messaging
-    await new Promise((r) => setTimeout(r, 50));
-
-    const combined = Buffer.concat(chunks);
-    const sent = decodeNativeMessages(combined);
-    const req = sent.find((m) => m.method === 'navigate');
-    expect(req).toBeDefined();
-
-    sendNativeResponse(nativeStdin, req!.id, 'navigate', {
-      url: 'https://example.com',
-      title: 'Example Domain',
-      tabId: 1,
-    });
-
-    const result = await toolPromise;
     expect(result.isError).toBeFalsy();
     const text = (result.content as Array<{ type: string; text: string }>)[0].text;
     expect(text).toContain('Example Domain');
     expect(text).toContain('https://example.com');
-
-    nativeStdout.removeAllListeners('data');
   });
 
-  it('page_snapshot returns formatted snapshot from native client', async () => {
-    const chunks: Buffer[] = [];
-    nativeStdout.on('data', (chunk: Buffer) => chunks.push(chunk));
+  it('page_snapshot returns formatted snapshot from ws client', async () => {
+    mockWs.setHandler((method) => ({
+      id: 'mock-id',
+      type: 'response',
+      method,
+      payload: {
+        text: '[page "Test"]\n  [button "Click"]',
+        snapshotId: 'snap-123',
+        url: 'https://example.com',
+        title: 'Test Page',
+      },
+      timestamp: Date.now(),
+    }));
 
-    const toolPromise = mcpClient.callTool({
+    const result = await mcpClient.callTool({
       name: 'page_snapshot',
       arguments: {},
     });
 
-    await new Promise((r) => setTimeout(r, 50));
-    const combined = Buffer.concat(chunks);
-    const sent = decodeNativeMessages(combined);
-    const req = sent.find((m) => m.method === 'snapshot');
-    expect(req).toBeDefined();
-
-    sendNativeResponse(nativeStdin, req!.id, 'snapshot', {
-      text: '[page "Test"]\n  [button "Click"]',
-      snapshotId: 'snap-123',
-      url: 'https://example.com',
-      title: 'Test Page',
-    });
-
-    const result = await toolPromise;
     expect(result.isError).toBeFalsy();
     const text = (result.content as Array<{ type: string; text: string }>)[0].text;
     expect(text).toContain('Test Page');
     expect(text).toContain('snap-123');
-
-    nativeStdout.removeAllListeners('data');
   });
 
   it('tool returning error response sets isError', async () => {
-    const chunks: Buffer[] = [];
-    nativeStdout.on('data', (chunk: Buffer) => chunks.push(chunk));
+    mockWs.setHandler((method) => ({
+      id: 'mock-id',
+      type: 'error',
+      method,
+      payload: { code: 'NO_TAB', message: 'No active tab' },
+      timestamp: Date.now(),
+    }));
 
-    const toolPromise = mcpClient.callTool({
+    const result = await mcpClient.callTool({
       name: 'page_snapshot',
       arguments: {},
     });
 
-    await new Promise((r) => setTimeout(r, 50));
-    const combined = Buffer.concat(chunks);
-    const sent = decodeNativeMessages(combined);
-    const req = sent.find((m) => m.method === 'snapshot');
-
-    // Send an error response
-    const msg = JSON.stringify({
-      id: req!.id,
-      type: 'error',
-      method: 'snapshot',
-      payload: { code: 'NO_TAB', message: 'No active tab' },
-      timestamp: Date.now(),
-    });
-    const body = Buffer.from(msg, 'utf-8');
-    const header = Buffer.alloc(4);
-    header.writeUInt32LE(body.length, 0);
-    nativeStdin.write(Buffer.concat([header, body]));
-
-    const result = await toolPromise;
     expect(result.isError).toBe(true);
-
-    nativeStdout.removeAllListeners('data');
   });
 });

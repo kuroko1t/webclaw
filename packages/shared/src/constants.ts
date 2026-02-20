@@ -22,3 +22,9 @@ export const PAGE_BRIDGE_CHANNEL = 'webclaw-page-bridge';
 
 /** Side panel message type prefix */
 export const SIDE_PANEL_PREFIX = 'webclaw-sidepanel';
+
+/** Default WebSocket port for MCP ↔ Extension communication */
+export const WEBSOCKET_DEFAULT_PORT = 18080;
+
+/** Environment variable to override the WebSocket port */
+export const WEBSOCKET_PORT_ENV = 'WEBCLAW_PORT';

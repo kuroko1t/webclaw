@@ -20,7 +20,7 @@ describe('MCP Server stdio startup', () => {
       const timeout = setTimeout(() => resolve(), 5000);
       child.stderr?.on('data', (chunk: Buffer) => {
         stderr += chunk.toString();
-        if (stderr.includes('MCP Server started')) {
+        if (stderr.includes('WebSocket server listening')) {
           clearTimeout(timeout);
           resolve();
         }
@@ -39,7 +39,7 @@ describe('MCP Server stdio startup', () => {
     });
 
     // Should have started (stderr contains startup message)
-    expect(stderr).toContain('MCP Server started');
+    expect(stderr).toContain('WebSocket server listening');
   });
 
   it('shows help with --help flag', async () => {

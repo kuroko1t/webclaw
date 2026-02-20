@@ -2,21 +2,24 @@
  * WebClaw Chrome Extension Service Worker.
  *
  * Acts as the message hub between:
- * - Native Messaging (MCP Server) ↔ Content Scripts (page interaction)
+ * - WebSocket (MCP Server) ↔ Content Scripts (page interaction)
  * - Content Scripts ↔ Side Panel (activity logging)
  */
 import {
-  NATIVE_MESSAGING_HOST,
+  WEBSOCKET_DEFAULT_PORT,
   KEEPALIVE_INTERVAL_MS,
 } from 'webclaw-shared';
-import { NativeMessagingBridge } from './native-messaging-bridge';
+import { WebSocketBridge } from './ws-bridge';
 import { TabManager } from './tab-manager';
 import { MessageRouter } from './message-router';
 
 // --- State ---
-let nativeBridge: NativeMessagingBridge | null = null;
 const tabManager = new TabManager();
 const messageRouter = new MessageRouter(tabManager);
+const wsBridge = new WebSocketBridge(
+  `ws://127.0.0.1:${WEBSOCKET_DEFAULT_PORT}`,
+  messageRouter
+);
 
 // --- Keepalive ---
 chrome.alarms.create('webclaw-keepalive', {
@@ -28,42 +31,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     void chrome.storage.session.get('keepalive');
   }
 });
-
-// --- Native Messaging ---
-chrome.runtime.onConnectExternal.addListener((port) => {
-  // External connections from other extensions (future use)
-  console.log('[WebClaw] External connection from:', port.sender?.id);
-});
-
-chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-  console.log('[WebClaw] External message:', message);
-  sendResponse({ ok: true });
-});
-
-// Listen for native messaging connections
-chrome.runtime.onConnectNative?.addListener((port) => {
-  console.log('[WebClaw] Native messaging connected');
-  nativeBridge = new NativeMessagingBridge(port, messageRouter);
-});
-
-// Fallback: listen on named native messaging port
-function connectNativeHost(): void {
-  try {
-    const port = chrome.runtime.connectNative(NATIVE_MESSAGING_HOST);
-    console.log('[WebClaw] Connected to native host');
-    nativeBridge = new NativeMessagingBridge(port, messageRouter);
-
-    port.onDisconnect.addListener(() => {
-      console.log(
-        '[WebClaw] Native host disconnected:',
-        chrome.runtime.lastError?.message
-      );
-      nativeBridge = null;
-    });
-  } catch (err) {
-    console.error('[WebClaw] Failed to connect native host:', err);
-  }
-}
 
 // --- Content Script Messages ---
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -115,12 +82,4 @@ chrome.action?.onClicked?.addListener((tab) => {
 // --- Startup ---
 console.log('[WebClaw] Service Worker started');
 
-// Export for message router to trigger native messaging connection
-export function ensureNativeConnection(): NativeMessagingBridge | null {
-  if (!nativeBridge) {
-    connectNativeHost();
-  }
-  return nativeBridge;
-}
-
-export { messageRouter, tabManager, nativeBridge, broadcastToSidePanel };
+export { messageRouter, tabManager, wsBridge, broadcastToSidePanel };

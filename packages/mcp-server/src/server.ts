@@ -2,19 +2,19 @@
  * WebClaw MCP Server.
  *
  * Exposes 8 browser interaction tools via MCP protocol (stdio transport).
- * Communicates with the Chrome Extension via Native Messaging.
+ * Communicates with the Chrome Extension via WebSocket.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { NativeMessagingClient } from './native-messaging-client.js';
+import { WebSocketClient } from './ws-client.js';
 
-export function createWebClawServer(options?: { nativeClient?: NativeMessagingClient }): McpServer {
+export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
     version: '0.1.0',
   });
 
-  const nativeClient = options?.nativeClient ?? new NativeMessagingClient();
+  const wsClient = options.wsClient;
 
   // --- Tool: navigate_to ---
   server.tool(
@@ -25,7 +25,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
     },
     async ({ url, tabId }) => {
-      const response = await nativeClient.request('navigate', { url, tabId });
+      const response = await wsClient.request('navigate', { url, tabId });
       if (response.type === 'error') {
         return {
           content: [{ type: 'text', text: `Navigation failed: ${JSON.stringify(response.payload)}` }],
@@ -48,7 +48,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: 4000)'),
     },
     async ({ tabId, maxTokens }) => {
-      const response = await nativeClient.request('snapshot', { tabId, maxTokens });
+      const response = await wsClient.request('snapshot', { tabId, maxTokens });
       if (response.type === 'error') {
         return {
           content: [{ type: 'text', text: `Snapshot failed: ${JSON.stringify(response.payload)}` }],
@@ -75,7 +75,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, snapshotId, tabId }) => {
-      const response = await nativeClient.request('click', { ref, snapshotId, tabId });
+      const response = await wsClient.request('click', { ref, snapshotId, tabId });
       if (response.type === 'error') {
         return {
           content: [{ type: 'text', text: `Click failed: ${JSON.stringify(response.payload)}` }],
@@ -100,7 +100,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, text, snapshotId, clearFirst, tabId }) => {
-      const response = await nativeClient.request('typeText', {
+      const response = await wsClient.request('typeText', {
         ref,
         text,
         snapshotId,
@@ -130,7 +130,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, value, snapshotId, tabId }) => {
-      const response = await nativeClient.request('selectOption', {
+      const response = await wsClient.request('selectOption', {
         ref,
         value,
         snapshotId,
@@ -156,7 +156,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ tabId }) => {
-      const response = await nativeClient.request('listWebMCPTools', { tabId });
+      const response = await wsClient.request('listWebMCPTools', { tabId });
       if (response.type === 'error') {
         return {
           content: [{ type: 'text', text: `List tools failed: ${JSON.stringify(response.payload)}` }],
@@ -188,7 +188,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ toolName, args, tabId }) => {
-      const response = await nativeClient.request('invokeWebMCPTool', {
+      const response = await wsClient.request('invokeWebMCPTool', {
         toolName,
         args,
         tabId,
@@ -220,7 +220,7 @@ export function createWebClawServer(options?: { nativeClient?: NativeMessagingCl
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ tabId }) => {
-      const response = await nativeClient.request('screenshot', { tabId });
+      const response = await wsClient.request('screenshot', { tabId });
       if (response.type === 'error') {
         return {
           content: [{ type: 'text', text: `Screenshot failed: ${JSON.stringify(response.payload)}` }],
