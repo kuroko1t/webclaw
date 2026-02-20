@@ -79,7 +79,7 @@ describe('MCP Protocol integration (in-process)', () => {
     const serverVersion = mcpClient.getServerVersion();
     expect(serverVersion).toBeDefined();
     expect(serverVersion!.name).toBe('webclaw');
-    expect(serverVersion!.version).toBe('0.3.0');
+    expect(serverVersion!.version).toBe('0.3.1');
   });
 
   // --- tools/list ---

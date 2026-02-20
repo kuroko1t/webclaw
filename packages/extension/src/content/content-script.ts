@@ -9,7 +9,7 @@
  */
 import { takeSnapshot } from './snapshot-engine';
 import { clickElement, typeText, selectOption, invokeWebMCPTool } from './action-executor';
-import { discoverWebMCPTools } from './webmcp-discovery';
+import { discoverWebMCPTools, getCachedTools, invokeSynthesizedTool } from './webmcp-discovery';
 
 // Inject page bridge script into MAIN world for WebMCP access
 injectPageBridge();
@@ -77,6 +77,16 @@ async function handleAction(message: {
     case 'invokeWebMCPTool': {
       const toolName = message.toolName as string;
       const args = message.args as Record<string, unknown>;
+
+      // Check if this is a synthesized tool — handle via DOM directly
+      const cachedTool = getCachedTools().find((t) => t.name === toolName);
+      if (cachedTool && cachedTool.source !== 'webmcp-native') {
+        const result = invokeSynthesizedTool(cachedTool, args);
+        logActivity('invokeWebMCPTool', { toolName, source: cachedTool.source, success: result.success });
+        return result;
+      }
+
+      // Native WebMCP tool — delegate to page bridge
       const result = await invokeWebMCPTool(toolName, args);
       logActivity('invokeWebMCPTool', { toolName, success: result.success });
       return result;

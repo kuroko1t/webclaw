@@ -27,6 +27,98 @@ export function getCachedTools(): WebMCPTool[] {
   return discoveredTools;
 }
 
+/**
+ * Invoke a synthesized tool by executing DOM actions directly.
+ * For buttons: finds and clicks the matching button.
+ * For forms: fills fields from args and submits.
+ */
+export function invokeSynthesizedTool(
+  tool: WebMCPTool,
+  args: Record<string, unknown>
+): { success: boolean; result?: unknown; error?: string } {
+  if (tool.source === 'synthesized-button') {
+    return invokeSynthesizedButton(tool);
+  }
+  if (tool.source === 'synthesized-form') {
+    return invokeSynthesizedForm(tool, args);
+  }
+  return { success: false, error: `Unsupported synthesized tool source: ${tool.source}` };
+}
+
+function invokeSynthesizedButton(
+  tool: WebMCPTool
+): { success: boolean; result?: unknown; error?: string } {
+  // Find the button by matching the same logic used during synthesis
+  const buttons = document.querySelectorAll(
+    'button:not(form button), [role="button"]:not(form [role="button"])'
+  );
+  for (const button of buttons) {
+    const el = button as HTMLElement;
+    const name = getButtonName(el);
+    if (!name) continue;
+    if (`button_${sanitizeName(name)}` === tool.name) {
+      el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
+      el.click();
+      return { success: true, result: { clicked: tool.name } };
+    }
+  }
+  return { success: false, error: `Button element not found for tool: ${tool.name}` };
+}
+
+function invokeSynthesizedForm(
+  tool: WebMCPTool,
+  args: Record<string, unknown>
+): { success: boolean; result?: unknown; error?: string } {
+  // Find the form by matching the same logic used during synthesis
+  const forms = document.querySelectorAll('form');
+  for (const form of forms) {
+    const formName = getFormName(form);
+    if (`form_${sanitizeName(formName)}` !== tool.name) continue;
+
+    // Fill form fields from args
+    for (const [fieldName, value] of Object.entries(args)) {
+      const el = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+        `[name="${fieldName}"], #${CSS.escape(fieldName)}`
+      );
+      if (!el) continue;
+
+      if (el instanceof HTMLSelectElement) {
+        el.value = String(value);
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+        el.checked = Boolean(value);
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+        // Use native setter for React/Vue compatibility
+        const proto = el instanceof HTMLTextAreaElement
+          ? HTMLTextAreaElement.prototype
+          : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        if (setter) {
+          setter.call(el, String(value));
+        } else {
+          el.value = String(value);
+        }
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    // Submit the form
+    const submitBtn = form.querySelector<HTMLElement>(
+      'button[type="submit"], input[type="submit"], button:not([type])'
+    );
+    if (submitBtn) {
+      submitBtn.click();
+    } else {
+      form.requestSubmit();
+    }
+
+    return { success: true, result: { submitted: tool.name, fields: Object.keys(args) } };
+  }
+  return { success: false, error: `Form element not found for tool: ${tool.name}` };
+}
+
 // --- Native WebMCP Discovery ---
 
 async function discoverNativeTools(tabId: number): Promise<WebMCPTool[]> {
