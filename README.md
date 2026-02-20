@@ -30,7 +30,7 @@ flowchart TB
     AE["Action Executor<br/>click, type, select"]
 
     LLM -- "MCP Protocol (stdio)" --> MCP
-    MCP -- "Native Messaging<br/>(length-prefixed JSON)" --> EXT
+    MCP -- "WebSocket<br/>(localhost:18080)" --> EXT
     EXT --- SW
     EXT --- SP
     EXT --- CS
@@ -79,17 +79,8 @@ pnpm build
 2. Enable **Developer mode**
 3. Click **Load unpacked**
 4. Select `packages/extension/dist/`
-5. Note the **extension ID** shown on the card
 
-### 3. Register Native Messaging Host
-
-```bash
-npx webclaw-mcp install
-```
-
-This writes the Native Messaging host manifest and prints the MCP client config. After running, update the `allowed_origins` in the host manifest with your extension ID.
-
-### 4. Configure your MCP Client
+### 3. Configure your MCP Client
 
 <details>
 <summary><b>Claude Desktop</b></summary>
@@ -178,9 +169,15 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 </details>
 
-### 5. Verify
+### 4. Verify
 
-Restart your MCP client. Ask it to navigate to a website — you should see activity in the extension's Side Panel.
+Restart your MCP client. Make sure Chrome is running with the extension loaded. Ask the AI to navigate to a website — you should see activity in the extension's Side Panel.
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WEBCLAW_PORT` | `18080` | WebSocket port for MCP server ↔ extension communication |
 
 ## Usage Example
 
@@ -232,7 +229,7 @@ pnpm dev          # Watch mode
 ```
 packages/
   shared/          Type definitions, Zod schemas, utilities
-  mcp-server/      MCP server with 8 tools, Native Messaging bridge
+  mcp-server/      MCP server with 8 tools, WebSocket bridge
   extension/       Chrome MV3 extension (service worker, content scripts, side panel)
 examples/
   webmcp-demo-site/  WebMCP-enabled Todo app for testing
@@ -240,13 +237,14 @@ examples/
 
 ## Troubleshooting
 
-**Extension service worker not detected**
-- Make sure the extension is loaded and enabled in `chrome://extensions/`
-- Check that the extension ID in the Native Messaging host manifest matches the one shown in Chrome
+**Chrome extension not connected**
+- Make sure Chrome is running with the extension loaded
+- Check the Service Worker console (`chrome://extensions/` → Details → Service Worker) for `Connected to MCP server`
+- Verify the MCP server is running (look for `WebSocket server listening on 127.0.0.1:18080` in stderr)
 
 **MCP client cannot connect**
-- Run `npx webclaw-mcp install` again to regenerate the host manifest
 - Ensure `npx webclaw-mcp` runs successfully from your terminal
+- Check for port conflicts on 18080 (override with `WEBCLAW_PORT` env var)
 - Restart your MCP client after updating the config
 
 **Content script not injecting**
