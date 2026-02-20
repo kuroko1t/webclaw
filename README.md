@@ -218,6 +218,10 @@ The AI uses WebClaw's MCP tools to interact with the browser step-by-step:
 4. click(@e4)                               → click Search button
 ```
 
+| Step 3: Type into search box | Step 4: Search results |
+|---|---|
+| ![demo-search](docs/images/demo-search.png) | ![demo-results](docs/images/demo-results.png) |
+
 ### `page_snapshot` output — compact accessibility tree with `@ref` labels
 
 ```
