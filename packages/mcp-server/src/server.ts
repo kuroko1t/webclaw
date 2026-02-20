@@ -11,7 +11,7 @@ import { WebSocketClient } from './ws-client.js';
 export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
-    version: '0.2.1',
+    version: '0.3.0',
   });
 
   const wsClient = options.wsClient;
