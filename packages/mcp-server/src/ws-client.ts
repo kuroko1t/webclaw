@@ -3,10 +3,15 @@
  *
  * Replaces NativeMessagingClient. Runs a WebSocket server on localhost
  * that the extension's Service Worker connects to.
+ *
+ * When a tool request is made and the extension is not connected,
+ * automatically detects/launches Chrome and waits for the extension
+ * to connect.
  */
 import { WebSocketServer, WebSocket } from 'ws';
 import type { BridgeMessage, BridgeMethod } from 'webclaw-shared';
 import { createRequest, isBridgeMessage } from 'webclaw-shared';
+import { launchChrome } from './chrome-launcher.js';
 
 interface PendingRequest {
   resolve: (value: BridgeMessage) => void;
@@ -14,10 +19,15 @@ interface PendingRequest {
   timer: ReturnType<typeof setTimeout>;
 }
 
+/** Default timeout for waiting for Chrome extension to connect. */
+const ENSURE_CONNECTED_TIMEOUT_MS = 15_000;
+
 export class WebSocketClient {
   private wss: WebSocketServer;
   private connection: WebSocket | null = null;
   private pendingRequests = new Map<string, PendingRequest>();
+  private connectingPromise: Promise<void> | null = null;
+  private chromeLaunched = false;
 
   private constructor(wss: WebSocketServer) {
     this.wss = wss;
@@ -85,12 +95,88 @@ export class WebSocketClient {
     }
   }
 
-  /** Send a request and wait for the response */
+  /**
+   * Ensure the Chrome extension is connected.
+   *
+   * If not connected:
+   * 1. If Chrome hasn't been launched yet this session, launch it
+   * 2. Wait for the extension to connect (up to timeoutMs)
+   * 3. If extension doesn't connect, suggest installing the extension
+   *
+   * Chrome is only launched once per session to prevent multiple instances.
+   */
+  async ensureConnected(timeoutMs = ENSURE_CONNECTED_TIMEOUT_MS): Promise<void> {
+    if (this.isConnected()) return;
+
+    // Deduplicate concurrent calls
+    if (this.connectingPromise) return this.connectingPromise;
+
+    this.connectingPromise = this._doEnsureConnected(timeoutMs);
+    try {
+      await this.connectingPromise;
+    } finally {
+      this.connectingPromise = null;
+    }
+  }
+
+  private async _doEnsureConnected(timeoutMs: number): Promise<void> {
+    if (!this.chromeLaunched) {
+      console.error('[WebClaw] Chrome extension not connected. Launching Chrome...');
+      const launched = await launchChrome();
+      if (!launched) {
+        throw new Error(
+          'Could not launch Chrome automatically.\n' +
+          'Please start Chrome manually with the WebClaw extension installed.'
+        );
+      }
+      this.chromeLaunched = true;
+      console.error('[WebClaw] Chrome launched. Waiting for extension to connect...');
+    } else {
+      console.error('[WebClaw] Waiting for Chrome extension to reconnect...');
+    }
+
+    // Wait for extension to connect via WebSocket
+    return new Promise<void>((resolve, reject) => {
+      // Check again — might have connected while we were launching Chrome
+      if (this.isConnected()) {
+        resolve();
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        this.wss.removeListener('connection', onConnection);
+
+        reject(new Error(
+          'Chrome was launched but the WebClaw extension did not connect.\n' +
+          'Please ensure the WebClaw extension is installed and enabled:\n' +
+          '  1. Open chrome://extensions/\n' +
+          '  2. Enable Developer mode\n' +
+          '  3. Click "Load unpacked" and select the extension dist/ folder\n' +
+          '  4. Verify the extension is enabled'
+        ));
+      }, timeoutMs);
+
+      const onConnection = () => {
+        clearTimeout(timeout);
+        // Small delay to let the connection handler in constructor finish setting up
+        setTimeout(() => resolve(), 50);
+      };
+
+      this.wss.once('connection', onConnection);
+    });
+  }
+
+  /** Send a request and wait for the response. Auto-connects if needed. */
   async request(
     method: BridgeMethod,
     payload: unknown = {},
     timeoutMs = 60_000
   ): Promise<BridgeMessage> {
+    // Auto-connect: launch Chrome if needed and wait for extension
+    if (!this.isConnected()) {
+      await this.ensureConnected();
+    }
+
     if (!this.connection || this.connection.readyState !== WebSocket.OPEN) {
       throw new Error('Chrome extension is not connected');
     }

@@ -171,7 +171,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ### 4. Verify
 
-Restart your MCP client. Make sure Chrome is running with the extension loaded. Ask the AI to navigate to a website — you should see activity in the extension's Side Panel.
+Restart your MCP client and ask the AI to navigate to a website. Chrome will be **launched automatically** when a tool is called — no need to start it manually. You should see activity in the extension's Side Panel.
 
 ### Environment Variables
 
@@ -238,9 +238,10 @@ examples/
 ## Troubleshooting
 
 **Chrome extension not connected**
-- Make sure Chrome is running with the extension loaded
+- Chrome is auto-launched when a tool is called. If it fails, start Chrome manually with the extension loaded
 - Check the Service Worker console (`chrome://extensions/` → Details → Service Worker) for `Connected to MCP server`
 - Verify the MCP server is running (look for `WebSocket server listening on 127.0.0.1:18080` in stderr)
+- Chrome is only launched once per MCP session to prevent multiple instances
 
 **MCP client cannot connect**
 - Ensure `npx webclaw-mcp` runs successfully from your terminal
