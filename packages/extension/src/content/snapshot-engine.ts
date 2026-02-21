@@ -180,7 +180,8 @@ function getAccessibleName(el: Element): string {
   // <label> for inputs
   if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
     if (el.id) {
-      const label = document.querySelector(`label[for="${el.id}"]`);
+      const escapedId = el.id.replace(/["\\]/g, '\\$&');
+      const label = document.querySelector(`label[for="${escapedId}"]`);
       if (label) return label.textContent?.trim() ?? '';
     }
     // Wrapping <label>
@@ -274,8 +275,9 @@ function getVisibility(el: Element): 'visible' | 'hidden' | 'self-hidden' {
   const style = getComputedStyle(el);
   // display:none hides the entire subtree — no children are rendered
   if (style.display === 'none') return 'hidden';
-  // opacity:0 hides entire subtree — children cannot override parent opacity
-  if (style.opacity === '0') return 'hidden';
+  // opacity:0 hides the element visually, but children may become visible
+  // via CSS transitions/hover/focus (treat like visibility:hidden)
+  if (style.opacity === '0') return 'self-hidden';
   // visibility:hidden hides the element itself,
   // but children can override with visibility:visible
   if (style.visibility === 'hidden') return 'self-hidden';
@@ -348,6 +350,15 @@ function walkDOM(
 
   const name = getAccessibleName(el);
   if (name) node.name = name;
+
+  // Fallback: if element has a role and all DOM children collapsed to null,
+  // use textContent as the name (handles <td><span>text</span></td> etc.)
+  if (!node.name && children.length === 0 && el.children.length > 0 && role) {
+    const text = el.textContent?.trim() ?? '';
+    if (text) {
+      node.name = text.length > 80 ? text.slice(0, 77) + '...' : text;
+    }
+  }
 
   const value = getValue(el);
   if (value !== undefined) node.value = value;
@@ -425,6 +436,16 @@ function optimizeTree(node: SnapshotNode): SnapshotNode {
       continue;
     }
 
+    // Skip [img] with no name (decorative images)
+    if (opt.role === 'img' && !opt.ref && !opt.name) {
+      continue;
+    }
+
+    // Skip empty [cell] — no children, no name
+    if (opt.role === 'cell' && !opt.ref && !opt.name && !opt.children) {
+      continue;
+    }
+
     newChildren.push(opt);
   }
 
@@ -432,6 +453,22 @@ function optimizeTree(node: SnapshotNode): SnapshotNode {
     ...node,
     children: newChildren.length > 0 ? newChildren : undefined,
   };
+}
+
+/** Format a single node inline (no newline, no children expansion) */
+function formatNodeInline(node: SnapshotNode): string {
+  let text = '[';
+  if (node.ref) text += `${node.ref} `;
+  text += node.role;
+  if (node.name) text += ` "${node.name}"`;
+  text += ']';
+  if (node.value !== undefined) text += ` ${node.value}`;
+  if (node.checked !== undefined) text += node.checked ? ' (checked)' : ' (unchecked)';
+  if (node.disabled) text += ' (disabled)';
+  if (node.expanded !== undefined) text += node.expanded ? ' (expanded)' : ' (collapsed)';
+  if (node.selected !== undefined) text += node.selected ? ' (selected)' : ' (unselected)';
+  if (node.pressed !== undefined) text += node.pressed ? ' (pressed)' : ' (unpressed)';
+  return text;
 }
 
 /** Format a snapshot node into compact text */
@@ -474,6 +511,29 @@ function formatNode(node: SnapshotNode, indent: number): string {
 
   if (node.pressed !== undefined) {
     line += node.pressed ? ' (pressed)' : ' (unpressed)';
+  }
+
+  // Table row compaction: if all cells have ≤1 child, render as single line
+  if (node.role === 'row' && node.children) {
+    const allSimple = node.children.every(c => {
+      if (c.role !== 'cell' && c.role !== 'columnheader') return false;
+      if (!c.children || c.children.length === 0) return true; // empty cell
+      if (c.children.length > 1) return false; // multiple children
+      // Single child: only simple if it's a leaf (no nested children)
+      return !c.children[0].children;
+    });
+    if (allSimple) {
+      const cellTexts = node.children.map(c => {
+        if (!c.children || c.children.length === 0) {
+          // Empty cell or cell with name only
+          return c.name || '';
+        }
+        // Single-child cell: format child inline
+        return formatNodeInline(c.children[0]);
+      });
+      lines.push(`${pad}[row] ${cellTexts.join(' | ')}`);
+      return lines.join('\n');
+    }
   }
 
   lines.push(line);

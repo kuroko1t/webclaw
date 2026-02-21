@@ -495,8 +495,9 @@ describe('snapshot-engine', () => {
       `;
       const result = takeSnapshot();
       expect(result.text).toContain('table');
-      expect(result.text).toContain('columnheader');
-      expect(result.text).toContain('cell');
+      // Simple rows are compacted: [row] Name, [row] Alice
+      expect(result.text).toMatch(/\[row\].*Name/);
+      expect(result.text).toMatch(/\[row\].*Alice/);
     });
 
     it('captures list structure', () => {
@@ -591,6 +592,177 @@ describe('snapshot-engine', () => {
       `;
       const result = takeSnapshot();
       expect(result.text).toContain('United Kingdom');
+    });
+  });
+
+  describe('decorative image skipping', () => {
+    it('skips decorative images without alt text', () => {
+      document.body.innerHTML = `
+        <div>
+          <img src="spacer.gif">
+          <button>Action</button>
+        </div>
+      `;
+      const result = takeSnapshot();
+      expect(result.text).not.toContain('[img]');
+      expect(result.text).toContain('Action');
+    });
+
+    it('preserves images with alt text', () => {
+      document.body.innerHTML = '<img alt="Logo">';
+      const result = takeSnapshot();
+      expect(result.text).toContain('img');
+      expect(result.text).toContain('Logo');
+    });
+  });
+
+  describe('empty cell skipping', () => {
+    it('skips empty table cells in optimized tree', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr><td>Data</td><td></td><td></td></tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      // Compacted row should contain Data but empty cells are skipped from tree
+      expect(result.text).toContain('[row]');
+      expect(result.text).toContain('Data');
+    });
+  });
+
+  describe('table row compaction', () => {
+    it('compacts simple table rows into single lines', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr><th>Name</th><th>Age</th></tr>
+          <tr><td>Alice</td><td>30</td></tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      // Each row should be on a single line with " | " separator
+      expect(result.text).toMatch(/\[row\] Name \| Age/);
+      expect(result.text).toMatch(/\[row\] Alice \| 30/);
+    });
+
+    it('does not compact complex table rows', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr>
+            <td>
+              <a href="/a">Link A</a>
+              <a href="/b">Link B</a>
+            </td>
+            <td>Simple</td>
+          </tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      // Complex row (cell with 2+ children) should NOT be compacted
+      // Should fall back to multi-line format with [cell]
+      expect(result.text).toContain('[cell]');
+    });
+
+    it('does not compact rows with nested containers in cells', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr>
+            <td>
+              <table><tr><td>Nested</td></tr></table>
+            </td>
+          </tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      // Cell has a single child (table) but that child has its own children
+      // Should NOT compact — formatNodeInline would lose nested content
+      expect(result.text).toContain('[table]');
+      expect(result.text).toContain('Nested');
+    });
+
+    it('compacts rows with interactive refs', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr>
+            <td><a href="/repo">.github</a></td>
+            <td>Config files</td>
+          </tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      // Should compact with inline ref
+      expect(result.text).toMatch(/\[row\].*@e1 link "\.github".*\|.*Config files/);
+    });
+  });
+
+  describe('Bug: span-wrapped cell text', () => {
+    it('captures text in td > span', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr><th>Name</th><th>Value</th></tr>
+          <tr><td><span>Alice</span></td><td><span>100</span></td></tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      console.log('span-wrapped cell snapshot:', result.text);
+      expect(result.text).toContain('Alice');
+      expect(result.text).toContain('100');
+    });
+
+    it('captures text in td > strong', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr><td><strong>Important</strong></td></tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      console.log('strong-wrapped cell snapshot:', result.text);
+      expect(result.text).toContain('Important');
+    });
+
+    it('captures text in td > div', () => {
+      document.body.innerHTML = `
+        <table>
+          <tr><td><div>Wrapped</div></td></tr>
+        </table>
+      `;
+      const result = takeSnapshot();
+      console.log('div-wrapped cell snapshot:', result.text);
+      expect(result.text).toContain('Wrapped');
+    });
+  });
+
+  describe('Bug: CSS selector injection in label[for]', () => {
+    it('handles input with special characters in id', () => {
+      document.body.innerHTML = `
+        <label for='field"special'>Name</label>
+        <input id='field"special' type="text">
+      `;
+      // Should not throw, and should still find the label
+      const result = takeSnapshot();
+      expect(result.text).toContain('Name');
+    });
+  });
+
+  describe('Bug: opacity:0 elements', () => {
+    it('treats opacity:0 as self-hidden (children may be visible)', () => {
+      document.body.innerHTML = `
+        <div style="opacity:0">
+          <button style="opacity:1">Hidden Button</button>
+        </div>
+      `;
+      const result = takeSnapshot();
+      // Child with opacity:1 inside opacity:0 parent should be visible
+      expect(result.text).toContain('Hidden Button');
+    });
+
+    it('still hides elements with display:none', () => {
+      document.body.innerHTML = `
+        <div style="display:none">
+          <button>Invisible</button>
+        </div>
+      `;
+      const result = takeSnapshot();
+      expect(result.text).not.toContain('Invisible');
     });
   });
 });
