@@ -115,7 +115,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ### 2. Load the Chrome extension
 
-1. Download [`webclaw-extension-v0.7.1.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.7.1.zip) and unzip
+1. Download [`webclaw-extension-v0.7.2.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.7.2.zip) and unzip
 2. Open `chrome://extensions/` → enable **Developer mode**
 3. Click **Load unpacked** → select the `dist/` folder
 
