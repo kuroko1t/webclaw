@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/webclaw-mcp)](https://www.npmjs.com/package/webclaw-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The first **WebMCP-native** browser agent — control Chrome from Claude, Cursor, and any MCP client.
+A **WebMCP-native** browser agent that runs inside your real Chrome — control it from Claude, Cursor, and any MCP client.
 
 <p align="center">
   <img src="docs/images/demo.gif" alt="WebClaw demo" width="860">
