@@ -72,7 +72,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
 
   it('server reports version 0.4.0', () => {
     const info = mcpClient.getServerVersion();
-    expect(info!.version).toBe('0.7.0');
+    expect(info!.version).toBe('0.7.1');
   });
 
   it('lists exactly 19 tools', async () => {
