@@ -458,6 +458,27 @@ function formatNode(node: SnapshotNode, indent: number): string {
   return lines.join('\n');
 }
 
+/** Aliases for focusRegion parameter to landmark roles */
+const FOCUS_REGION_ALIASES: Record<string, string> = {
+  header: 'banner',
+  footer: 'contentinfo',
+  sidebar: 'complementary',
+};
+
+/** Recursively find all nodes matching a given role */
+function findNodesByRole(node: SnapshotNode, role: string): SnapshotNode[] {
+  const results: SnapshotNode[] = [];
+  if (node.role === role) {
+    results.push(node);
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      results.push(...findNodesByRole(child, role));
+    }
+  }
+  return results;
+}
+
 /** Generate a snapshot ID */
 function generateSnapshotId(): string {
   return `snap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -476,10 +497,21 @@ export function takeSnapshot(
   const refCounter = createRefCounter();
   const tree = walkDOM(document.body, refCounter, options);
 
+  // Apply focusRegion filter: extract only the matching landmark subtree(s)
+  let filteredChildren = tree ? [tree] : [];
+  if (options.focusRegion && tree) {
+    const regionRole = FOCUS_REGION_ALIASES[options.focusRegion] ?? options.focusRegion;
+    const matches = findNodesByRole(tree, regionRole);
+    if (matches.length > 0) {
+      filteredChildren = matches;
+    }
+    // If no matches, fall back to full tree
+  }
+
   const pageNode: SnapshotNode = {
     role: 'page',
     name: document.title,
-    children: tree ? [tree] : [],
+    children: filteredChildren,
   };
 
   let text = formatNode(pageNode, 0);

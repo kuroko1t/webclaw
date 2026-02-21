@@ -31,4 +31,6 @@ export interface SnapshotOptions {
   maxTokens?: number;
   /** Include only interactive elements */
   interactiveOnly?: boolean;
+  /** Focus on a specific landmark region (e.g., 'main', 'nav', 'contentinfo', 'complementary') */
+  focusRegion?: string;
 }

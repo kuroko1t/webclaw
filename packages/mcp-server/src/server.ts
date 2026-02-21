@@ -62,9 +62,10 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
     {
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
       maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: 4000)'),
+      focusRegion: z.string().optional().describe('Focus on a specific landmark region (e.g., "main", "nav", "header", "footer", "sidebar", "complementary", "banner", "contentinfo")'),
     },
-    async ({ tabId, maxTokens }) => {
-      const response = await wsClient.requestWithRetry('snapshot', { tabId, maxTokens });
+    async ({ tabId, maxTokens, focusRegion }) => {
+      const response = await wsClient.requestWithRetry('snapshot', { tabId, maxTokens, focusRegion });
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }

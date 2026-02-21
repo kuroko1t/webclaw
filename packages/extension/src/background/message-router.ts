@@ -198,6 +198,7 @@ export class MessageRouter {
     const result = await this.tabManager.sendToContentScript(tabId, {
       action: 'snapshot',
       maxTokens: params.maxTokens,
+      focusRegion: params.focusRegion,
     });
     if (result && typeof result === 'object' && 'snapshotId' in (result as Record<string, unknown>)) {
       this.tabManager.setSnapshotId(tabId, (result as { snapshotId: string }).snapshotId);

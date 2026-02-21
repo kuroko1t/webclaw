@@ -35,7 +35,8 @@ async function handleAction(message: {
 
     case 'snapshot': {
       const maxTokens = message.maxTokens as number | undefined;
-      const result = takeSnapshot({ maxTokens });
+      const focusRegion = message.focusRegion as string | undefined;
+      const result = takeSnapshot({ maxTokens, focusRegion });
       logActivity('snapshot', { snapshotId: result.snapshotId });
       return result;
     }

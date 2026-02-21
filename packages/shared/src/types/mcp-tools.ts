@@ -12,6 +12,7 @@ export interface NavigateToParams {
 export interface PageSnapshotParams {
   tabId?: number;
   maxTokens?: number;
+  focusRegion?: string;
 }
 
 /** Parameters for click tool */
