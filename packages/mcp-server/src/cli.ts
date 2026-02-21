@@ -44,8 +44,35 @@ More info: https://github.com/kuroko1t/webclaw`);
   await install();
 } else {
   const port = Number(process.env[WEBSOCKET_PORT_ENV]) || WEBSOCKET_DEFAULT_PORT;
-  const wsClient = await WebSocketClient.create(port);
+
+  let wsClient: WebSocketClient;
+  try {
+    wsClient = await WebSocketClient.create(port);
+  } catch (err) {
+    const error = err as NodeJS.ErrnoException;
+    if (error.code === 'EADDRINUSE') {
+      console.error(
+        `[WebClaw] Port ${port} is already in use.\n` +
+          `  Another WebClaw instance may be running. To fix:\n` +
+          `    lsof -ti:${port} | xargs kill\n` +
+          `  Or use a different port:\n` +
+          `    ${WEBSOCKET_PORT_ENV}=${port + 1} npx webclaw-mcp`,
+      );
+    } else {
+      console.error(`[WebClaw] WebSocket server error: ${error.message}`);
+    }
+    process.exit(1);
+  }
+
   console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${port}`);
+
+  const cleanup = async () => {
+    console.error('[WebClaw] Shutting down...');
+    await wsClient.close();
+    process.exit(0);
+  };
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
 
   const server = createWebClawServer({ wsClient });
   const transport = new StdioServerTransport();
