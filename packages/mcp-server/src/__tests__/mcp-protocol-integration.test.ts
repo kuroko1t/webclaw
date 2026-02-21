@@ -50,6 +50,7 @@ const EXPECTED_TOOLS = [
   'navigate_to',
   'page_snapshot',
   'click',
+  'hover',
   'type_text',
   'select_option',
   'list_webmcp_tools',
@@ -91,13 +92,13 @@ describe('MCP Protocol integration (in-process)', () => {
     const serverVersion = mcpClient.getServerVersion();
     expect(serverVersion).toBeDefined();
     expect(serverVersion!.name).toBe('webclaw');
-    expect(serverVersion!.version).toBe('0.4.0');
+    expect(serverVersion!.version).toBe('0.5.0');
   });
 
   // --- tools/list ---
-  it('lists all 17 tools', async () => {
+  it('lists all 18 tools', async () => {
     const result = await mcpClient.listTools();
-    expect(result.tools).toHaveLength(17);
+    expect(result.tools).toHaveLength(18);
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([...EXPECTED_TOOLS].sort());
   });

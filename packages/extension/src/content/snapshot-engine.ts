@@ -309,6 +309,13 @@ function walkDOM(
     const childNode = walkDOM(child, refCounter, options);
     if (childNode) children.push(childNode);
   }
+  // Process shadow DOM if present (open shadow roots)
+  if (el.shadowRoot) {
+    for (const shadowChild of el.shadowRoot.children) {
+      const childNode = walkDOM(shadowChild, refCounter, options);
+      if (childNode) children.push(childNode);
+    }
+  }
 
   // If this element is self-hidden, only pass through children
   if (selfHidden) {

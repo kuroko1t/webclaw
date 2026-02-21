@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WebClaw",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "WebMCP-native browser agent - enables AI assistants to interact with web pages",
   "permissions": [
     "activeTab",

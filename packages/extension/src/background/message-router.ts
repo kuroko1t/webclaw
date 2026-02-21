@@ -7,6 +7,7 @@ import type {
   NavigateToParams,
   PageSnapshotParams,
   ClickParams,
+  HoverParams,
   TypeTextParams,
   SelectOptionParams,
   ListWebMCPToolsParams,
@@ -46,6 +47,9 @@ export class MessageRouter {
           break;
         case 'click':
           result = await this.handleClick(payload as ClickParams);
+          break;
+        case 'hover':
+          result = await this.handleHover(payload as HoverParams);
           break;
         case 'typeText':
           result = await this.handleTypeText(payload as TypeTextParams);
@@ -202,6 +206,15 @@ export class MessageRouter {
     this.validateSnapshotId(tabId, params.snapshotId);
     return this.tabManager.sendToContentScript(tabId, {
       action: 'click',
+      ref: params.ref,
+    });
+  }
+
+  private async handleHover(params: HoverParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    this.validateSnapshotId(tabId, params.snapshotId);
+    return this.tabManager.sendToContentScript(tabId, {
+      action: 'hover',
       ref: params.ref,
     });
   }

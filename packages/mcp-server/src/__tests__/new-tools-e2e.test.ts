@@ -72,12 +72,12 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
 
   it('server reports version 0.4.0', () => {
     const info = mcpClient.getServerVersion();
-    expect(info!.version).toBe('0.4.0');
+    expect(info!.version).toBe('0.5.0');
   });
 
-  it('lists exactly 17 tools', async () => {
+  it('lists exactly 18 tools', async () => {
     const { tools } = await mcpClient.listTools();
-    expect(tools).toHaveLength(17);
+    expect(tools).toHaveLength(18);
   });
 
   it('new tools are present in tool list', async () => {
@@ -90,6 +90,12 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
     for (const name of newTools) {
       expect(names).toContain(name);
     }
+  });
+
+  it('hover tool is present in tool list', async () => {
+    const { tools } = await mcpClient.listTools();
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('hover');
   });
 
   // =========================================
@@ -536,6 +542,86 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
         arguments: { direction: 'left' },
       });
       expect(result.isError).toBe(true);
+    });
+  });
+
+  // =========================================
+  // Hover tool
+  // =========================================
+
+  describe('hover', () => {
+    it('hovers over an element by ref', async () => {
+      mockWs.setHandler((method) => ({
+        id: 'mock-id',
+        type: 'response',
+        method,
+        payload: { success: true },
+        timestamp: Date.now(),
+      }));
+
+      const result = await mcpClient.callTool({
+        name: 'hover',
+        arguments: { ref: '@e3', snapshotId: 'snap-789' },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('Hovered over @e3');
+      expect(text).toContain('page_snapshot');
+      expect(mockWs.getLastCall()!.method).toBe('hover');
+      expect(mockWs.getLastCall()!.payload).toEqual({ ref: '@e3', snapshotId: 'snap-789' });
+    });
+
+    it('supports optional tabId', async () => {
+      mockWs.setHandler((method) => ({
+        id: 'mock-id',
+        type: 'response',
+        method,
+        payload: { success: true },
+        timestamp: Date.now(),
+      }));
+
+      await mcpClient.callTool({
+        name: 'hover',
+        arguments: { ref: '@e1', snapshotId: 'snap-abc', tabId: 5 },
+      });
+
+      expect(mockWs.getLastCall()!.payload).toEqual({ ref: '@e1', snapshotId: 'snap-abc', tabId: 5 });
+    });
+
+    it('rejects invalid ref pattern', async () => {
+      const result = await mcpClient.callTool({
+        name: 'hover',
+        arguments: { ref: 'bad-ref', snapshotId: 'snap-123' },
+      });
+      expect(result.isError).toBe(true);
+    });
+
+    it('requires snapshotId', async () => {
+      const result = await mcpClient.callTool({
+        name: 'hover',
+        arguments: { ref: '@e1' },
+      });
+      expect(result.isError).toBe(true);
+    });
+
+    it('handles error response', async () => {
+      mockWs.setHandler((method) => ({
+        id: 'mock-id',
+        type: 'error',
+        method,
+        payload: { code: 'STALE_SNAPSHOT', message: 'Stale snapshot ID' },
+        timestamp: Date.now(),
+      }));
+
+      const result = await mcpClient.callTool({
+        name: 'hover',
+        arguments: { ref: '@e1', snapshotId: 'old-snap' },
+      });
+
+      expect(result.isError).toBe(true);
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('Stale snapshot');
     });
   });
 

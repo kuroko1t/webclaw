@@ -21,6 +21,13 @@ export interface ClickParams {
   tabId?: number;
 }
 
+/** Parameters for hover tool */
+export interface HoverParams {
+  ref: string;
+  snapshotId: string;
+  tabId?: number;
+}
+
 /** Parameters for type_text tool */
 export interface TypeTextParams {
   ref: string;

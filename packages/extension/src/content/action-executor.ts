@@ -54,6 +54,37 @@ export function clickElement(ref: string): { success: boolean; error?: string } 
   return { success: true };
 }
 
+/** Hover over an element by @ref to trigger mouseover/mouseenter events */
+export function hoverElement(ref: string): { success: boolean; error?: string } {
+  const el = resolveRef(ref);
+  if (!el) {
+    return { success: false, error: `Element not found for ref ${ref}` };
+  }
+
+  if (!(el instanceof HTMLElement) && !(el instanceof SVGElement)) {
+    return { success: false, error: `Element ${ref} is not a hoverable element` };
+  }
+
+  // Scroll into view
+  (el as HTMLElement).scrollIntoView?.({ behavior: 'instant', block: 'center' });
+
+  // Get element center coordinates for realistic mouse events
+  const rect = el.getBoundingClientRect();
+  const clientX = rect.left + rect.width / 2;
+  const clientY = rect.top + rect.height / 2;
+  const pointerOpts = { bubbles: true, cancelable: true, clientX, clientY };
+
+  // Dispatch hover event sequence
+  el.dispatchEvent(new PointerEvent('pointerover', pointerOpts));
+  el.dispatchEvent(new PointerEvent('pointerenter', { ...pointerOpts, bubbles: false }));
+  el.dispatchEvent(new MouseEvent('mouseover', pointerOpts));
+  el.dispatchEvent(new MouseEvent('mouseenter', { ...pointerOpts, bubbles: false }));
+  el.dispatchEvent(new PointerEvent('pointermove', pointerOpts));
+  el.dispatchEvent(new MouseEvent('mousemove', pointerOpts));
+
+  return { success: true };
+}
+
 /** Type text into an element by @ref */
 export function typeText(
   ref: string,
@@ -106,12 +137,52 @@ export function typeText(
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   } else {
-    // contenteditable
+    // contenteditable — use multiple strategies for rich-text editor compatibility
+    // (Prosemirror, Draft.js, Slate, etc.)
     if (clearFirst) {
-      el.textContent = '';
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      if (typeof document.execCommand === 'function') {
+        document.execCommand('delete');
+      } else {
+        el.textContent = '';
+      }
+    } else {
+      // Place cursor at end
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
     }
-    el.textContent = (el.textContent ?? '') + text;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
+    // Try execCommand first (works with most editors)
+    let inserted = false;
+    if (typeof document.execCommand === 'function') {
+      inserted = document.execCommand('insertText', false, text);
+    }
+    // Fallback: dispatch InputEvent with insertText type (Prosemirror, modern editors)
+    if (!inserted) {
+      el.dispatchEvent(new InputEvent('beforeinput', {
+        inputType: 'insertText',
+        data: text,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      }));
+      // If editor didn't handle beforeinput, set textContent directly
+      if (!el.textContent?.includes(text)) {
+        el.textContent = (clearFirst ? '' : (el.textContent ?? '')) + text;
+      }
+      el.dispatchEvent(new InputEvent('input', {
+        inputType: 'insertText',
+        data: text,
+        bubbles: true,
+      }));
+    }
   }
 
   return { success: true };

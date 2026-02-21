@@ -532,12 +532,12 @@ describe('Browser Behaviors E2E', () => {
 
   // --- Shadow DOM ---
 
-  it('should not include shadow DOM elements in snapshot', async () => {
+  it('should include shadow DOM elements in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/shadow-dom`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
-    // Shadow DOM button should NOT appear (snapshot walks el.children, not shadowRoot)
-    expect(snap.text).not.toContain('"Shadow Button"');
+    // Shadow DOM button should appear (snapshot walks shadowRoot)
+    expect(snap.text).toContain('"Shadow Button"');
 
     // Light DOM button should appear
     expect(snap.text).toContain('"Light DOM Button"');

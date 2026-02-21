@@ -1,7 +1,7 @@
 /**
  * WebClaw MCP Server.
  *
- * Exposes 17 browser interaction tools via MCP protocol (stdio transport).
+ * Exposes 18 browser interaction tools via MCP protocol (stdio transport).
  * Communicates with the Chrome Extension via WebSocket.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -29,7 +29,7 @@ function formatErrorResponse(payload: unknown): {
 export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
-    version: '0.4.0',
+    version: '0.5.0',
   });
 
   const wsClient = options.wsClient;
@@ -93,6 +93,26 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       }
       return {
         content: [{ type: 'text', text: `Clicked ${ref}` }],
+      };
+    }
+  );
+
+  // --- Tool: hover ---
+  server.tool(
+    'hover',
+    'Hover over an element to trigger mouseover events and reveal hidden UI (e.g., dropdown menus, tooltips)',
+    {
+      ref: z.string().regex(/^@e\d+$/).describe('Element reference (e.g., @e1, @e2)'),
+      snapshotId: z.string().min(1).describe('Snapshot ID from the most recent page_snapshot call'),
+      tabId: z.number().int().optional().describe('Target tab ID'),
+    },
+    async ({ ref, snapshotId, tabId }) => {
+      const response = await wsClient.requestWithRetry('hover', { ref, snapshotId, tabId });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      return {
+        content: [{ type: 'text', text: `Hovered over ${ref}. Take a new page_snapshot to see revealed elements.` }],
       };
     }
   );

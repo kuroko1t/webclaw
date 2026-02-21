@@ -44,6 +44,7 @@ export type BridgeMethod =
   | 'navigate'
   | 'snapshot'
   | 'click'
+  | 'hover'
   | 'typeText'
   | 'selectOption'
   | 'listWebMCPTools'

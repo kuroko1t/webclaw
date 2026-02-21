@@ -589,7 +589,7 @@ describe('Dynamic State & Interactions E2E', () => {
 
   // --- Shadow DOM ---
 
-  it('should include light DOM elements but not shadow DOM elements in snapshot', async () => {
+  it('should include both light DOM and shadow DOM elements in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/shadow-dom`);
 
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
@@ -598,9 +598,9 @@ describe('Dynamic State & Interactions E2E', () => {
     expect(snap.text).toContain('Light DOM Button');
     expect(snap.text).toContain('Light input');
 
-    // Shadow DOM elements should NOT be in snapshot (known limitation)
-    expect(snap.text).not.toContain('Shadow Button');
-    expect(snap.text).not.toContain('Shadow input');
+    // Shadow DOM elements should now be in snapshot
+    expect(snap.text).toContain('Shadow Button');
+    expect(snap.text).toContain('Shadow input');
   }, 15_000);
 
   it('should still interact with light DOM when shadow DOM is present', async () => {

@@ -39,6 +39,7 @@ export const OPERATION_TIMEOUTS: Record<string, number> = {
   waitForNavigation: 30_000,
   snapshot: 15_000,
   click: 10_000,
+  hover: 10_000,
   typeText: 10_000,
   selectOption: 10_000,
   screenshot: 15_000,
