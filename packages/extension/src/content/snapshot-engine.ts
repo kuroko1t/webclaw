@@ -56,6 +56,8 @@ const STRUCTURAL_ROLES: Record<string, string> = {
   SECTION: 'region',
   ARTICLE: 'article',
   FORM: 'form',
+  PRE: 'code',
+  CODE: 'code',
   TABLE: 'table',
   THEAD: 'rowgroup',
   TBODY: 'rowgroup',
@@ -234,6 +236,7 @@ function getDirectTextContent(parent: Element, exclude: Element): string {
 function getValue(el: Element): string | undefined {
   if (el instanceof HTMLInputElement) {
     if (el.type === 'checkbox' || el.type === 'radio') return undefined;
+    if (el.type === 'password') return undefined;
     if (el.value) return el.value;
   }
   if (el instanceof HTMLTextAreaElement && el.value) return el.value;
