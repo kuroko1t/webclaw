@@ -405,10 +405,39 @@ function walkDOM(
   return node;
 }
 
+/** Optimize snapshot tree to reduce token waste */
+function optimizeTree(node: SnapshotNode): SnapshotNode {
+  if (!node.children) return node;
+
+  const newChildren: SnapshotNode[] = [];
+  for (const child of node.children) {
+    const opt = optimizeTree(child);
+
+    // Skip [rowgroup] — always structural (<thead>/<tbody>), promote children
+    if (opt.role === 'rowgroup' && !opt.ref && !opt.name) {
+      if (opt.children) newChildren.push(...opt.children);
+      continue;
+    }
+
+    // Skip [listitem] with single child — promote the child
+    if (opt.role === 'listitem' && !opt.ref && !opt.name && opt.children?.length === 1) {
+      newChildren.push(opt.children[0]);
+      continue;
+    }
+
+    newChildren.push(opt);
+  }
+
+  return {
+    ...node,
+    children: newChildren.length > 0 ? newChildren : undefined,
+  };
+}
+
 /** Format a snapshot node into compact text */
 function formatNode(node: SnapshotNode, indent: number): string {
   const lines: string[] = [];
-  const pad = '  '.repeat(indent);
+  const pad = ' '.repeat(indent);
   let line = `${pad}[`;
 
   if (node.ref) {
@@ -514,7 +543,8 @@ export function takeSnapshot(
     children: filteredChildren,
   };
 
-  let text = formatNode(pageNode, 0);
+  const optimizedPage = optimizeTree(pageNode);
+  let text = formatNode(optimizedPage, 0);
 
   // Token budget control
   const maxTokens = options.maxTokens ?? DEFAULT_SNAPSHOT_MAX_TOKENS;

@@ -508,7 +508,9 @@ describe('snapshot-engine', () => {
       `;
       const result = takeSnapshot();
       expect(result.text).toContain('list');
-      expect(result.text).toContain('listitem');
+      // Single-child [listitem] nodes are optimized away (child promoted)
+      expect(result.text).toContain('link "A"');
+      expect(result.text).toContain('link "B"');
     });
 
     it('captures dialog element', () => {
