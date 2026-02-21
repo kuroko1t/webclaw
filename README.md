@@ -115,7 +115,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ### 2. Load the Chrome extension
 
-1. Download [`webclaw-extension-v0.6.1.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.6.1.zip) and unzip
+1. Download [`webclaw-extension-v0.7.0.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.7.0.zip) and unzip
 2. Open `chrome://extensions/` → enable **Developer mode**
 3. Click **Load unpacked** → select the `dist/` folder
 
@@ -177,10 +177,10 @@ flowchart LR
 
 Every interactive element gets a stable `@ref` label. The AI reads the tree, picks the right `@ref`, and calls `click` / `type_text` / `select_option`.
 
-## MCP Tools (18)
+## MCP Tools (19)
 
 <details>
-<summary><b>Page Interaction</b> — navigate, snapshot, click, hover, type, select, screenshot</summary>
+<summary><b>Page Interaction</b> — navigate, snapshot, click, hover, type, select, drop files, screenshot</summary>
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
@@ -190,6 +190,7 @@ Every interactive element gets a stable `@ref` label. The AI reads the tree, pic
 | `hover` | `ref`, `snapshotId`, `tabId?` | Hover over an element to reveal hidden UI (dropdowns, tooltips) |
 | `type_text` | `ref`, `text`, `snapshotId`, `tabId?` | Type text into an input/textarea by `@ref` |
 | `select_option` | `ref`, `value`, `snapshotId`, `tabId?` | Select a dropdown option by `@ref` |
+| `drop_files` | `ref`, `snapshotId`, `files`, `tabId?` | Drop files onto an element (e.g., upload images to GitHub issues) |
 | `screenshot` | `tabId?` | Capture the visible area of the active tab |
 
 </details>
@@ -245,7 +246,7 @@ pnpm dev          # Watch mode
 ```
 packages/
   shared/          Type definitions, Zod schemas, utilities
-  mcp-server/      MCP server with 18 tools, WebSocket bridge
+  mcp-server/      MCP server with 19 tools, WebSocket bridge
   extension/       Chrome MV3 extension (service worker, content scripts, side panel)
 examples/
   webmcp-demo-site/  WebMCP-enabled Todo app for testing native tool discovery

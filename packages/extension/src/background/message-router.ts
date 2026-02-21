@@ -21,6 +21,7 @@ import type {
   ReloadParams,
   WaitForNavigationParams,
   ScrollPageParams,
+  DropFilesParams,
 } from 'webclaw-shared';
 import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
@@ -98,6 +99,9 @@ export class MessageRouter {
           break;
         case 'scrollPage':
           result = await this.handleScrollPage(payload as ScrollPageParams);
+          break;
+        case 'dropFiles':
+          result = await this.handleDropFiles(payload as DropFilesParams);
           break;
         case 'ping':
           result = { pong: true, timestamp: Date.now() };
@@ -402,6 +406,16 @@ export class MessageRouter {
       action: 'scrollPage',
       direction: params.direction ?? 'down',
       amount: params.amount,
+    });
+  }
+
+  private async handleDropFiles(params: DropFilesParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    this.validateSnapshotId(tabId, params.snapshotId);
+    return this.tabManager.sendToContentScript(tabId, {
+      action: 'dropFiles',
+      ref: params.ref,
+      files: params.files,
     });
   }
 

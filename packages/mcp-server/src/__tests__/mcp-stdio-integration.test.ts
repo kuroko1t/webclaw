@@ -108,10 +108,10 @@ describe('MCP Server stdio integration', () => {
     ) as any;
     expect(initResponse).toBeDefined();
     expect(initResponse.result.serverInfo.name).toBe('webclaw');
-    expect(initResponse.result.serverInfo.version).toBe('0.6.1');
+    expect(initResponse.result.serverInfo.version).toBe('0.7.0');
   }, 20000);
 
-  it('lists 18 tools via JSON-RPC after initialization', async () => {
+  it('lists 19 tools via JSON-RPC after initialization', async () => {
     child = await spawnAndWaitReady();
 
     const collector = createResponseCollector(child);
@@ -152,7 +152,7 @@ describe('MCP Server stdio integration', () => {
       (r: any) => r.id === 2 && r.result
     );
     expect(toolsResponse).toBeDefined();
-    expect(toolsResponse.result.tools).toHaveLength(18);
+    expect(toolsResponse.result.tools).toHaveLength(19);
 
     const toolNames = toolsResponse.result.tools
       .map((t: any) => t.name)
@@ -160,6 +160,7 @@ describe('MCP Server stdio integration', () => {
     expect(toolNames).toEqual([
       'click',
       'close_tab',
+      'drop_files',
       'go_back',
       'go_forward',
       'hover',

@@ -1,7 +1,7 @@
 /**
  * WebClaw MCP Server.
  *
- * Exposes 18 browser interaction tools via MCP protocol (stdio transport).
+ * Exposes 19 browser interaction tools via MCP protocol (stdio transport).
  * Communicates with the Chrome Extension via WebSocket.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -29,7 +29,7 @@ function formatErrorResponse(payload: unknown): {
 export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
-    version: '0.6.1',
+    version: '0.7.0',
   });
 
   const wsClient = options.wsClient;
@@ -448,6 +448,37 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       }
       return {
         content: [{ type: 'text', text: `Scrolled ${direction ?? 'down'}` }],
+      };
+    }
+  );
+
+  // --- Tool: drop_files ---
+  server.tool(
+    'drop_files',
+    'Drop files onto an element (file input or drag-and-drop target) for uploading',
+    {
+      ref: z.string().regex(/^@e\d+$/).describe('Element reference (e.g., @e1)'),
+      snapshotId: z.string().min(1).describe('Snapshot ID from the most recent page_snapshot call'),
+      files: z.array(z.object({
+        name: z.string().min(1).describe('File name (e.g., "image.png")'),
+        mimeType: z.string().min(1).describe('MIME type (e.g., "image/png")'),
+        base64Data: z.string().min(1).describe('Base64-encoded file content'),
+      })).min(1).describe('Files to drop'),
+      tabId: z.number().int().optional().describe('Target tab ID'),
+    },
+    async ({ ref, snapshotId, files, tabId }) => {
+      const response = await wsClient.requestWithRetry('dropFiles', {
+        ref,
+        snapshotId,
+        files,
+        tabId,
+      });
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const fileNames = files.map((f) => f.name).join(', ');
+      return {
+        content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}: ${fileNames}` }],
       };
     }
   );

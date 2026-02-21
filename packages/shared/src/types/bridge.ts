@@ -59,7 +59,8 @@ export type BridgeMethod =
   | 'goForward'
   | 'reload'
   | 'waitForNavigation'
-  | 'scrollPage';
+  | 'scrollPage'
+  | 'dropFiles';
 
 /** Chunked message for large payloads (>1MB Native Messaging limit) */
 export interface ChunkedMessage {

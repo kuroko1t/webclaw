@@ -118,3 +118,18 @@ export interface ScrollPageParams {
   ref?: string;
   snapshotId?: string;
 }
+
+/** A single file entry for drop_files tool */
+export interface DropFileEntry {
+  name: string;
+  mimeType: string;
+  base64Data: string;
+}
+
+/** Parameters for drop_files tool */
+export interface DropFilesParams {
+  ref: string;
+  snapshotId: string;
+  files: DropFileEntry[];
+  tabId?: number;
+}

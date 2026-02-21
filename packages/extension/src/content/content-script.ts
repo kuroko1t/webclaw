@@ -8,7 +8,7 @@
  * - Communication with Service Worker
  */
 import { takeSnapshot, resolveRef } from './snapshot-engine';
-import { clickElement, hoverElement, typeText, selectOption, invokeWebMCPTool } from './action-executor';
+import { clickElement, hoverElement, typeText, selectOption, dropFiles, invokeWebMCPTool } from './action-executor';
 import { discoverWebMCPTools, getCachedTools, invokeSynthesizedTool } from './webmcp-discovery';
 
 // Inject page bridge script into MAIN world for WebMCP access
@@ -68,6 +68,14 @@ async function handleAction(message: {
       const value = message.value as string;
       const result = selectOption(ref, value);
       logActivity('selectOption', { ref, value, success: result.success });
+      return result;
+    }
+
+    case 'dropFiles': {
+      const ref = message.ref as string;
+      const files = message.files as Array<{ name: string; mimeType: string; base64Data: string }>;
+      const result = dropFiles(ref, files);
+      logActivity('dropFiles', { ref, fileCount: files.length, success: result.success });
       return result;
     }
 

@@ -113,3 +113,16 @@ export const scrollPageSchema = z.object({
   ref: z.string().regex(/^@e\d+$/).optional(),
   snapshotId: z.string().min(1).optional(),
 });
+
+export const dropFileEntrySchema = z.object({
+  name: z.string().min(1),
+  mimeType: z.string().min(1),
+  base64Data: z.string().min(1),
+});
+
+export const dropFilesSchema = z.object({
+  ref: z.string().regex(/^@e\d+$/),
+  snapshotId: z.string().min(1),
+  files: z.array(dropFileEntrySchema).min(1),
+  tabId: z.number().int().optional(),
+});

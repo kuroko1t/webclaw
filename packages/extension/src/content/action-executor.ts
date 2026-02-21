@@ -248,6 +248,66 @@ export function selectOption(
   return { success: true };
 }
 
+/** Convert base64 string to a File object */
+function base64ToFile(name: string, mimeType: string, base64Data: string): File {
+  const byteString = atob(base64Data);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new File([ab], name, { type: mimeType });
+}
+
+/** Drop files onto an element by @ref (file input or drag-and-drop target) */
+export function dropFiles(
+  ref: string,
+  files: Array<{ name: string; mimeType: string; base64Data: string }>
+): { success: boolean; error?: string } {
+  const el = resolveRef(ref);
+  if (!el) {
+    return { success: false, error: `Element not found for ref ${ref}` };
+  }
+
+  if (!(el instanceof HTMLElement)) {
+    return { success: false, error: `Element ${ref} is not an HTML element` };
+  }
+
+  const fileObjects = files.map((f) => base64ToFile(f.name, f.mimeType, f.base64Data));
+
+  // Strategy 1: <input type="file"> — set files via DataTransfer
+  if (el instanceof HTMLInputElement && el.type === 'file') {
+    const dt = new DataTransfer();
+    for (const file of fileObjects) {
+      dt.items.add(file);
+    }
+    el.files = dt.files;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return { success: true };
+  }
+
+  // Strategy 2: Drag-and-drop event sequence
+  el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
+  const rect = el.getBoundingClientRect();
+  const clientX = rect.left + rect.width / 2;
+  const clientY = rect.top + rect.height / 2;
+
+  const dt = new DataTransfer();
+  for (const file of fileObjects) {
+    dt.items.add(file);
+  }
+
+  const commonOpts = { bubbles: true, cancelable: true, clientX, clientY, dataTransfer: dt };
+
+  el.dispatchEvent(new DragEvent('dragenter', commonOpts));
+  el.dispatchEvent(new DragEvent('dragover', commonOpts));
+  el.dispatchEvent(new DragEvent('drop', commonOpts));
+  el.dispatchEvent(new DragEvent('dragleave', commonOpts));
+
+  return { success: true };
+}
+
 /** Invoke a WebMCP native tool via page context bridge */
 export async function invokeWebMCPTool(
   toolName: string,

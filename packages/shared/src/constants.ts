@@ -52,6 +52,7 @@ export const OPERATION_TIMEOUTS: Record<string, number> = {
   listWebMCPTools: 10_000,
   invokeWebMCPTool: 30_000,
   scrollPage: 10_000,
+  dropFiles: 30_000,
   ping: 5_000,
 };
 
