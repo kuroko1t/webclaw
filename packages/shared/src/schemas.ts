@@ -117,8 +117,12 @@ export const scrollPageSchema = z.object({
 export const dropFileEntrySchema = z.object({
   name: z.string().min(1),
   mimeType: z.string().min(1),
-  base64Data: z.string().min(1),
-});
+  base64Data: z.string().min(1).optional(),
+  filePath: z.string().min(1).optional(),
+}).refine(
+  (data) => data.base64Data !== undefined || data.filePath !== undefined,
+  { message: 'Either base64Data or filePath must be provided' }
+);
 
 export const dropFilesSchema = z.object({
   ref: z.string().regex(/^@e\d+$/),

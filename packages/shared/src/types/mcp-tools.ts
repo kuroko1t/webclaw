@@ -123,7 +123,8 @@ export interface ScrollPageParams {
 export interface DropFileEntry {
   name: string;
   mimeType: string;
-  base64Data: string;
+  base64Data?: string;
+  filePath?: string;
 }
 
 /** Parameters for drop_files tool */

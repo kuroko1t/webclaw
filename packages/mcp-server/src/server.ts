@@ -6,6 +6,7 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { readFileSync } from 'node:fs';
 import { ERROR_RECOVERY } from 'webclaw-shared';
 import type { ErrorCode } from 'webclaw-shared';
 import { WebSocketClient } from './ws-client.js';
@@ -462,15 +463,28 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       files: z.array(z.object({
         name: z.string().min(1).describe('File name (e.g., "image.png")'),
         mimeType: z.string().min(1).describe('MIME type (e.g., "image/png")'),
-        base64Data: z.string().min(1).describe('Base64-encoded file content'),
+        base64Data: z.string().optional().describe('Base64-encoded file content'),
+        filePath: z.string().optional().describe('Local file path (alternative to base64Data — the server reads the file)'),
       })).min(1).describe('Files to drop'),
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, snapshotId, files, tabId }) => {
+      // Resolve filePath → base64Data for each file entry
+      const resolvedFiles = files.map((f) => {
+        if (f.base64Data) {
+          return { name: f.name, mimeType: f.mimeType, base64Data: f.base64Data };
+        }
+        if (f.filePath) {
+          const data = readFileSync(f.filePath);
+          return { name: f.name, mimeType: f.mimeType, base64Data: data.toString('base64') };
+        }
+        throw new Error(`File "${f.name}": either base64Data or filePath must be provided`);
+      });
+
       const response = await wsClient.requestWithRetry('dropFiles', {
         ref,
         snapshotId,
-        files,
+        files: resolvedFiles,
         tabId,
       });
       if (response.type === 'error') {
