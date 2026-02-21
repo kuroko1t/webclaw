@@ -115,7 +115,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ### 2. Load the Chrome extension
 
-1. Download [`webclaw-extension-v0.5.0.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.5.0.zip) and unzip
+1. Download [`webclaw-extension-v0.6.0.zip`](https://github.com/kuroko1t/webclaw/releases/latest/download/webclaw-extension-v0.6.0.zip) and unzip
 2. Open `chrome://extensions/` → enable **Developer mode**
 3. Click **Load unpacked** → select the `dist/` folder
 
@@ -251,11 +251,15 @@ examples/
   webmcp-demo-site/  WebMCP-enabled Todo app for testing native tool discovery
 ```
 
+### Multi-Session Support
+
+WebClaw automatically scans ports 18080–18089, so you can run up to **10 MCP server instances** simultaneously (e.g., multiple Claude Code sessions). Each instance binds to the first available port, and the Chrome extension connects to all of them.
+
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WEBCLAW_PORT` | `18080` | WebSocket port for MCP server ↔ extension communication |
+| `WEBCLAW_PORT` | `18080` | WebSocket port for MCP server ↔ extension communication. When set, disables auto-scanning and uses only this port. |
 
 <details>
 <summary><b>Troubleshooting</b></summary>
@@ -263,11 +267,11 @@ examples/
 **Chrome extension not connected**
 - Chrome is auto-launched when a tool is called. If it fails, start Chrome manually with the extension loaded
 - Check the Service Worker console (`chrome://extensions/` → Details → Service Worker) for `Connected to MCP server`
-- Verify the MCP server is running (look for `WebSocket server listening on 127.0.0.1:18080` in stderr)
+- Verify the MCP server is running (look for `WebSocket server listening on 127.0.0.1:<port>` in stderr)
 
 **MCP client cannot connect**
 - Ensure `npx webclaw-mcp` runs successfully from your terminal
-- Check for port conflicts on 18080 (override with `WEBCLAW_PORT` env var)
+- Check for port conflicts: WebClaw auto-scans 18080–18089. If all are in use, set `WEBCLAW_PORT` to a custom port
 - Restart your MCP client after updating the config
 
 **Content script not injecting**

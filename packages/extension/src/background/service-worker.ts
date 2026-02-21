@@ -7,6 +7,7 @@
  */
 import {
   WEBSOCKET_DEFAULT_PORT,
+  WEBSOCKET_PORT_RANGE_SIZE,
   KEEPALIVE_INTERVAL_MS,
 } from 'webclaw-shared';
 import { WebSocketBridge } from './ws-bridge';
@@ -16,10 +17,19 @@ import { MessageRouter } from './message-router';
 // --- State ---
 const tabManager = new TabManager();
 const messageRouter = new MessageRouter(tabManager);
-const wsBridge = new WebSocketBridge(
-  `ws://127.0.0.1:${WEBSOCKET_DEFAULT_PORT}`,
-  messageRouter
-);
+
+const wsBridges: WebSocketBridge[] = [];
+for (let i = 0; i < WEBSOCKET_PORT_RANGE_SIZE; i++) {
+  wsBridges.push(
+    new WebSocketBridge(
+      `ws://127.0.0.1:${WEBSOCKET_DEFAULT_PORT + i}`,
+      messageRouter,
+    ),
+  );
+}
+
+/** Backward-compatible single bridge reference (first port) */
+const wsBridge = wsBridges[0];
 
 // --- Keepalive ---
 chrome.alarms.create('webclaw-keepalive', {
@@ -82,4 +92,4 @@ chrome.action?.onClicked?.addListener((tab) => {
 // --- Startup ---
 console.log('[WebClaw] Service Worker started');
 
-export { messageRouter, tabManager, wsBridge, broadcastToSidePanel };
+export { messageRouter, tabManager, wsBridge, wsBridges, broadcastToSidePanel };

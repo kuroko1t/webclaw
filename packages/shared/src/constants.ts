@@ -26,6 +26,9 @@ export const SIDE_PANEL_PREFIX = 'webclaw-sidepanel';
 /** Default WebSocket port for MCP ↔ Extension communication */
 export const WEBSOCKET_DEFAULT_PORT = 18080;
 
+/** Number of ports to scan for multi-session support (18080–18089) */
+export const WEBSOCKET_PORT_RANGE_SIZE = 10;
+
 /** Environment variable to override the WebSocket port */
 export const WEBSOCKET_PORT_ENV = 'WEBCLAW_PORT';
 

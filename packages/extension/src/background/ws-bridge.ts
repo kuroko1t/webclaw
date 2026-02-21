@@ -15,6 +15,7 @@ export class WebSocketBridge {
   private router: MessageRouter;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  private hasConnectedOnce = false;
 
   constructor(url: string, router: MessageRouter) {
     this.url = url;
@@ -29,7 +30,8 @@ export class WebSocketBridge {
       this.ws = new WebSocket(this.url);
 
       this.ws.addEventListener('open', () => {
-        console.log('[WebClaw Bridge] Connected to MCP server');
+        this.hasConnectedOnce = true;
+        console.log(`[WebClaw Bridge] Connected to MCP server (${this.url})`);
       });
 
       this.ws.addEventListener('message', (event) => {
@@ -37,7 +39,9 @@ export class WebSocketBridge {
       });
 
       this.ws.addEventListener('close', () => {
-        console.log('[WebClaw Bridge] Disconnected from MCP server');
+        if (this.hasConnectedOnce) {
+          console.log(`[WebClaw Bridge] Disconnected from MCP server (${this.url})`);
+        }
         this.ws = null;
         this.scheduleReconnect();
       });

@@ -11,7 +11,7 @@ import { createWebClawServer } from './server.js';
 import { WebSocketClient } from './ws-client.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { install } from './installer.js';
-import { WEBSOCKET_DEFAULT_PORT, WEBSOCKET_PORT_ENV } from 'webclaw-shared';
+import { WEBSOCKET_DEFAULT_PORT, WEBSOCKET_PORT_ENV, WEBSOCKET_PORT_RANGE_SIZE } from 'webclaw-shared';
 
 const args = process.argv.slice(2);
 
@@ -43,28 +43,58 @@ More info: https://github.com/kuroko1t/webclaw`);
 } else if (args[0] === 'install') {
   await install();
 } else {
-  const port = Number(process.env[WEBSOCKET_PORT_ENV]) || WEBSOCKET_DEFAULT_PORT;
+  const explicitPort = process.env[WEBSOCKET_PORT_ENV] ? Number(process.env[WEBSOCKET_PORT_ENV]) : null;
 
   let wsClient: WebSocketClient;
-  try {
-    wsClient = await WebSocketClient.create(port);
-  } catch (err) {
-    const error = err as NodeJS.ErrnoException;
-    if (error.code === 'EADDRINUSE') {
-      console.error(
-        `[WebClaw] Port ${port} is already in use.\n` +
-          `  Another WebClaw instance may be running. To fix:\n` +
-          `    lsof -ti:${port} | xargs kill\n` +
-          `  Or use a different port:\n` +
-          `    ${WEBSOCKET_PORT_ENV}=${port + 1} npx webclaw-mcp`,
-      );
-    } else {
-      console.error(`[WebClaw] WebSocket server error: ${error.message}`);
-    }
-    process.exit(1);
-  }
 
-  console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${port}`);
+  if (explicitPort !== null) {
+    // Explicit port: use only that port (backward compatible)
+    try {
+      wsClient = await WebSocketClient.create(explicitPort);
+    } catch (err) {
+      const error = err as NodeJS.ErrnoException;
+      if (error.code === 'EADDRINUSE') {
+        console.error(
+          `[WebClaw] Port ${explicitPort} is already in use.\n` +
+            `  Another WebClaw instance may be running. To fix:\n` +
+            `    lsof -ti:${explicitPort} | xargs kill\n` +
+            `  Or use a different port:\n` +
+            `    ${WEBSOCKET_PORT_ENV}=${explicitPort + 1} npx webclaw-mcp`,
+        );
+      } else {
+        console.error(`[WebClaw] WebSocket server error: ${error.message}`);
+      }
+      process.exit(1);
+    }
+    console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${explicitPort}`);
+  } else {
+    // Auto-scan port range
+    let boundPort: number | null = null;
+    wsClient = null!;
+    for (let i = 0; i < WEBSOCKET_PORT_RANGE_SIZE; i++) {
+      const port = WEBSOCKET_DEFAULT_PORT + i;
+      try {
+        wsClient = await WebSocketClient.create(port);
+        boundPort = port;
+        break;
+      } catch (err) {
+        const error = err as NodeJS.ErrnoException;
+        if (error.code === 'EADDRINUSE') {
+          continue;
+        }
+        console.error(`[WebClaw] WebSocket server error: ${error.message}`);
+        process.exit(1);
+      }
+    }
+    if (boundPort === null) {
+      console.error(
+        `[WebClaw] All ports in range ${WEBSOCKET_DEFAULT_PORT}–${WEBSOCKET_DEFAULT_PORT + WEBSOCKET_PORT_RANGE_SIZE - 1} are in use.\n` +
+          `  ${WEBSOCKET_PORT_RANGE_SIZE} WebClaw instances may already be running.`,
+      );
+      process.exit(1);
+    }
+    console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${boundPort}`);
+  }
 
   const cleanup = async () => {
     console.error('[WebClaw] Shutting down...');

@@ -9,6 +9,7 @@
  * to connect.
  */
 import { WebSocketServer, WebSocket } from 'ws';
+import type { IncomingMessage } from 'http';
 import type { BridgeMessage, BridgeMethod } from 'webclaw-shared';
 import { createRequest, isBridgeMessage } from 'webclaw-shared';
 import {
@@ -41,6 +42,53 @@ function isTransientError(err: Error): boolean {
   return TRANSIENT_ERROR_PATTERNS.some(
     (pattern) => msg.includes(pattern.toLowerCase())
   );
+}
+
+const ALLOWED_ORIGIN_SCHEMES = [
+  'chrome-extension://',
+  'moz-extension://',
+  'safari-web-extension://',
+];
+
+const ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '[::1]'];
+
+/**
+ * Create a verifyClient callback for WebSocketServer.
+ * Rejects browser connections from web origins (http/https) and
+ * connections with unexpected Host headers (DNS rebinding protection).
+ */
+export function createVerifyClient(port: number) {
+  return (
+    info: { origin: string; secure: boolean; req: IncomingMessage },
+    callback: (result: boolean, code?: number, message?: string) => void
+  ): void => {
+    const origin = info.origin ?? info.req.headers['origin'];
+    const host = info.req.headers['host'] ?? '';
+
+    // --- Origin validation ---
+    // No origin (Node.js clients, tests) → allow
+    if (origin !== undefined && origin !== '') {
+      const isAllowedOrigin = ALLOWED_ORIGIN_SCHEMES.some((scheme) =>
+        origin.startsWith(scheme)
+      );
+      if (!isAllowedOrigin) {
+        callback(false, 403, 'Forbidden: disallowed origin');
+        return;
+      }
+    }
+
+    // --- Host validation (DNS rebinding protection) ---
+    if (host !== '') {
+      // Strip port suffix to get bare hostname
+      const hostname = host.replace(/:\d+$/, '');
+      if (!ALLOWED_HOSTS.includes(hostname)) {
+        callback(false, 403, 'Forbidden: disallowed host');
+        return;
+      }
+    }
+
+    callback(true);
+  };
 }
 
 export class WebSocketClient {
@@ -96,7 +144,7 @@ export class WebSocketClient {
 
   /** Create a WebSocketClient and wait for the server to be listening. */
   static async create(port: number, host = '127.0.0.1'): Promise<WebSocketClient> {
-    const wss = new WebSocketServer({ port, host });
+    const wss = new WebSocketServer({ port, host, verifyClient: createVerifyClient(port) });
     await new Promise<void>((resolve, reject) => {
       wss.once('listening', resolve);
       wss.once('error', reject);
