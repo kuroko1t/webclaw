@@ -29,7 +29,7 @@ function formatErrorResponse(payload: unknown): {
 export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
-    version: '0.5.0',
+    version: '0.6.1',
   });
 
   const wsClient = options.wsClient;
