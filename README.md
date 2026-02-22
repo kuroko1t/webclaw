@@ -289,6 +289,10 @@ WebClaw automatically scans ports 18080–18089, so you can run up to **10 MCP s
 
 Contributions are welcome! Please open an issue to discuss your idea before submitting a pull request.
 
+## Disclaimer
+
+WebClaw is a browser automation tool intended for legitimate use cases such as personal productivity, development, testing, and accessibility. Users are responsible for complying with the terms of service of any website they interact with. The authors are not responsible for any misuse of this tool.
+
 ## License
 
 [MIT](LICENSE)
