@@ -8,9 +8,15 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createWebClawServer } from '../server.js';
 import type { WebSocketClient } from '../ws-client.js';
 import type { BridgeMessage, BridgeMethod } from 'webclaw-shared';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PKG_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')).version;
 
 /** Create a mock WS client with configurable handler */
 function createMockWsClient(): {
@@ -72,7 +78,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
 
   it('server reports version 0.4.0', () => {
     const info = mcpClient.getServerVersion();
-    expect(info!.version).toBe('0.7.2');
+    expect(info!.version).toBe(PKG_VERSION);
   });
 
   it('lists exactly 19 tools', async () => {

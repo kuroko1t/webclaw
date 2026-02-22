@@ -7,11 +7,13 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliPath = resolve(__dirname, '../../dist/cli.js');
+const PKG_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')).version;
 
 let child: ChildProcess | null = null;
 let nextPort = 19080;
@@ -108,7 +110,7 @@ describe('MCP Server stdio integration', () => {
     ) as any;
     expect(initResponse).toBeDefined();
     expect(initResponse.result.serverInfo.name).toBe('webclaw');
-    expect(initResponse.result.serverInfo.version).toBe('0.7.2');
+    expect(initResponse.result.serverInfo.version).toBe(PKG_VERSION);
   }, 20000);
 
   it('lists 19 tools via JSON-RPC after initialization', async () => {

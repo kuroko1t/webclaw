@@ -7,6 +7,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ERROR_RECOVERY } from 'webclaw-shared';
 import type { BridgeMessage, BridgeMethod, ErrorCode } from 'webclaw-shared';
 import { WebSocketClient } from './ws-client.js';
@@ -27,10 +29,13 @@ function formatErrorResponse(payload: unknown): {
   };
 }
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PKG_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf8')).version;
+
 export function createWebClawServer(options: { wsClient: WebSocketClient }): McpServer {
   const server = new McpServer({
     name: 'webclaw',
-    version: '0.7.5',
+    version: PKG_VERSION,
   });
 
   const wsClient = options.wsClient;
