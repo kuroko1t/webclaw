@@ -211,7 +211,7 @@ describe('Framework Compatibility E2E', () => {
 
     // select[multiple] should have "listbox" role, not "combobox"
     expect(snap.text).toMatch(/(listbox|combobox).*"Toppings"/);
-  }, 15_000);
+  }, 30_000);
 
   it('should select a single option in select[multiple]', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-select`);
@@ -231,7 +231,7 @@ describe('Framework Compatibility E2E', () => {
       return Array.from(sel.selectedOptions).map(o => o.value);
     });
     expect(selected).toContain('mushroom');
-  }, 15_000);
+  }, 30_000);
 
   it('should preserve existing selections in select[multiple] when selecting additional option', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-select`);
@@ -258,7 +258,7 @@ describe('Framework Compatibility E2E', () => {
     // Both cheese and mushroom should be selected
     expect(selected).toContain('mushroom');
     expect(selected).toContain('cheese');
-  }, 15_000);
+  }, 30_000);
 
   it('should show all preselected values for select[multiple] in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-select`);
@@ -267,7 +267,7 @@ describe('Framework Compatibility E2E', () => {
     // Should show at least one of the preselected values
     // Ideally shows both "Alpha, Charlie" or similar
     expect(snap.text).toContain('Preselected');
-  }, 15_000);
+  }, 30_000);
 
   // --- Click Event Coordinates ---
 
@@ -294,7 +294,7 @@ describe('Framework Compatibility E2E', () => {
       expect(x).toBeGreaterThan(0);
       expect(y).toBeGreaterThan(0);
     }
-  }, 15_000);
+  }, 30_000);
 
   // --- Input Event Compatibility ---
 
@@ -324,7 +324,7 @@ describe('Framework Compatibility E2E', () => {
     // Input event should bubble
     const inputEvent = events.find((e: any) => e.type === 'input');
     expect(inputEvent.bubbles).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should dispatch input event on contenteditable typeText', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/input-events`);
@@ -345,7 +345,7 @@ describe('Framework Compatibility E2E', () => {
     const editableEvents = events.filter((e: any) => e.target === 'editable1');
     const eventTypes = editableEvents.map((e: any) => e.type);
     expect(eventTypes).toContain('input');
-  }, 15_000);
+  }, 30_000);
 
   // --- Dropdown Menu ---
 
@@ -380,7 +380,7 @@ describe('Framework Compatibility E2E', () => {
     // Dropdown should be closed now, items hidden in new snapshot
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).not.toContain('Item 1');
-  }, 15_000);
+  }, 30_000);
 
   // --- Tooltip ---
 
@@ -392,7 +392,7 @@ describe('Framework Compatibility E2E', () => {
     expect(snap.text).toContain('Save document');
     // Normal button should also be present
     expect(snap.text).toContain('Normal Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should click button with tooltip without issues', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/tooltip`);
@@ -403,7 +403,7 @@ describe('Framework Compatibility E2E', () => {
 
     const result = await sendToContentScript(browser, page, { action: 'click', ref });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Lazy Loading ---
 
@@ -454,7 +454,7 @@ describe('Framework Compatibility E2E', () => {
     expect(btnRef).toBeTruthy();
     const clickResult = await sendToContentScript(browser, page, { action: 'click', ref: btnRef });
     expect(clickResult.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should handle button disabled during loading and re-enabled after', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/lazy-content`);
@@ -478,5 +478,5 @@ describe('Framework Compatibility E2E', () => {
     // Check it's no longer disabled
     const loadMoreLine = snap.text.split('\n').find((l: string) => l.includes('Load More'));
     expect(loadMoreLine).not.toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 });

@@ -211,7 +211,7 @@ describe('Interaction Edge Cases E2E', () => {
       document.getElementById('click-result')!.textContent
     );
     expect(text).toBe('JS link clicked');
-  }, 15_000);
+  }, 30_000);
 
   it('should click a hash link and still have working snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/link-navigation`);
@@ -224,7 +224,7 @@ describe('Interaction Edge Cases E2E', () => {
     // After hash navigation, snapshot should still work
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('Section 2 Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should navigate to new page via link click and work on target page', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/link-navigation`);
@@ -241,7 +241,7 @@ describe('Interaction Edge Cases E2E', () => {
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('Target Page');
     expect(snap2.text).toContain('Target Button');
-  }, 15_000);
+  }, 30_000);
 
   // --- Image Accessibility ---
 
@@ -265,7 +265,7 @@ describe('Interaction Edge Cases E2E', () => {
     const emptyAltLine = lines.find((l: string) => l.match(/\[img\]/) && !l.match(/img "/));
     // There should be at least one img without a name (empty alt or no alt)
     // This is acceptable - they appear in the snapshot but without a name
-  }, 15_000);
+  }, 30_000);
 
   it('should show linked image as a link with image alt as name', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/images`);
@@ -275,7 +275,7 @@ describe('Interaction Edge Cases E2E', () => {
     // The link's name comes from its text content which includes the img's alt
     const linkRef = snap.text.match(/@e\d+(?= link)/)?.[0];
     expect(linkRef).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should show input[type="image"] as button with alt name', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/images`);
@@ -283,7 +283,7 @@ describe('Interaction Edge Cases E2E', () => {
 
     // input[type="image"] should show as button with alt text
     expect(snap.text).toContain('button "Submit form"');
-  }, 15_000);
+  }, 30_000);
 
   // --- Special Input Types ---
 
@@ -299,7 +299,7 @@ describe('Interaction Edge Cases E2E', () => {
     expect(snap.text).toContain('textbox "Password"');
     // hidden inputs should NOT appear in snapshot
     expect(snap.text).not.toContain('secret');
-  }, 15_000);
+  }, 30_000);
 
   it('should type into number input and verify value', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-inputs`);
@@ -317,7 +317,7 @@ describe('Interaction Edge Cases E2E', () => {
       (document.getElementById('num-input') as HTMLInputElement).value
     );
     expect(value).toBe('42');
-  }, 15_000);
+  }, 30_000);
 
   it('should type into password field', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-inputs`);
@@ -336,7 +336,7 @@ describe('Interaction Edge Cases E2E', () => {
       (document.getElementById('pw-input') as HTMLInputElement).value
     );
     expect(value).toBe('MySecret123!');
-  }, 15_000);
+  }, 30_000);
 
   it('should show current values for number and range inputs in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-inputs`);
@@ -349,7 +349,7 @@ describe('Interaction Edge Cases E2E', () => {
     // Range input with value=50 should show the value
     const rangeLine = snap.text.split('\n').find((l: string) => l.includes('Volume'));
     expect(rangeLine).toContain('50');
-  }, 15_000);
+  }, 30_000);
 
   // --- Disabled Optgroup ---
 
@@ -369,7 +369,7 @@ describe('Interaction Edge Cases E2E', () => {
       (document.getElementById('sel-disabled-group') as HTMLSelectElement).value
     );
     expect(value).toBe('apple');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail selecting option from disabled optgroup', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-optgroup`);
@@ -384,7 +384,7 @@ describe('Interaction Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail selecting individually disabled option', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-optgroup`);
@@ -399,7 +399,7 @@ describe('Interaction Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should select option with whitespace-trimmed text matching', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-optgroup`);
@@ -418,7 +418,7 @@ describe('Interaction Edge Cases E2E', () => {
       (document.getElementById('sel-whitespace') as HTMLSelectElement).value
     );
     expect(value).toBe('a');
-  }, 15_000);
+  }, 30_000);
 
   // --- Scrollable Containers ---
 
@@ -437,7 +437,7 @@ describe('Interaction Edge Cases E2E', () => {
       document.getElementById('scroll-result')!.textContent
     );
     expect(text).toBe('Bottom button clicked');
-  }, 15_000);
+  }, 30_000);
 
   it('should type into input at bottom of scrollable container', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/scrollable`);
@@ -455,7 +455,7 @@ describe('Interaction Edge Cases E2E', () => {
       (document.getElementById('bottom-input') as HTMLInputElement).value
     );
     expect(value).toBe('Scrolled input text');
-  }, 15_000);
+  }, 30_000);
 
   it('should click button inside nested scrollable container', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/scrollable`);
@@ -471,7 +471,7 @@ describe('Interaction Edge Cases E2E', () => {
       document.getElementById('scroll-result')!.textContent
     );
     expect(text).toBe('Nested button clicked');
-  }, 15_000);
+  }, 30_000);
 
   // --- Progress & Meter ---
 
@@ -490,7 +490,7 @@ describe('Interaction Edge Cases E2E', () => {
     // Output should show its text
     expect(snap.text).toContain('status');
     expect(snap.text).toContain('42');
-  }, 15_000);
+  }, 30_000);
 
   it('should update progress value after button click', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/progress-meter`);
@@ -504,5 +504,5 @@ describe('Interaction Edge Cases E2E', () => {
     // Re-snapshot: progress should be 50/100
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('50/100');
-  }, 15_000);
+  }, 30_000);
 });

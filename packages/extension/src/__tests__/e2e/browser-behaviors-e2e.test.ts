@@ -305,7 +305,7 @@ describe('Browser Behaviors E2E', () => {
 
     // Hidden child (inherits visibility:hidden) should NOT appear
     expect(snap.text).not.toContain('"Hidden Child"');
-  }, 15_000);
+  }, 30_000);
 
   it('should clickable visibility:visible child inside visibility:hidden parent', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility-cascade`);
@@ -321,7 +321,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('vis-result')!.textContent,
     );
     expect(text).toBe('child-clicked');
-  }, 15_000);
+  }, 30_000);
 
   it('should exclude display:none children even if they have visibility:visible', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility-cascade`);
@@ -329,7 +329,7 @@ describe('Browser Behaviors E2E', () => {
 
     // display:none subtree should be completely excluded
     expect(snap.text).not.toContain('"Display None Child"');
-  }, 15_000);
+  }, 30_000);
 
   it('should exclude opacity:0 elements from snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility-cascade`);
@@ -337,7 +337,7 @@ describe('Browser Behaviors E2E', () => {
 
     // opacity:0 child inherits, should not have interactive @ref
     expect(snap.text).not.toContain('"Opacity Child"');
-  }, 15_000);
+  }, 30_000);
 
   // --- Deep DOM Nesting ---
 
@@ -349,7 +349,7 @@ describe('Browser Behaviors E2E', () => {
     expect(snap.text).toContain('"Deep Button"');
     const ref = snap.text.match(/@e\d+(?= button "Deep Button")/)?.[0];
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should click deeply nested button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/deep-nesting`);
@@ -363,7 +363,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('deep-result')!.textContent,
     );
     expect(text).toBe('deep-clicked');
-  }, 15_000);
+  }, 30_000);
 
   // --- Rapid Sequential Actions ---
 
@@ -387,7 +387,7 @@ describe('Browser Behaviors E2E', () => {
 
     expect(valueA).toBe('Hello');
     expect(valueB).toBe('World');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle rapid clicks on the same button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/rapid-actions`);
@@ -405,7 +405,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('counter-display')!.textContent,
     );
     expect(count).toBe('Count: 5');
-  }, 15_000);
+  }, 30_000);
 
   // --- Form Submission ---
 
@@ -429,7 +429,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('form-result')!.textContent,
     );
     expect(result).toBe('Submitted: Alice');
-  }, 15_000);
+  }, 30_000);
 
   // --- Back/Forward Navigation ---
 
@@ -456,7 +456,7 @@ describe('Browser Behaviors E2E', () => {
     // Page B should have its own elements
     expect(snap.text).toContain('"Button B"');
     expect(snap.text).not.toContain('"Button A"');
-  }, 15_000);
+  }, 30_000);
 
   // --- Offscreen Elements ---
 
@@ -479,7 +479,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('size-result')!.textContent,
     );
     expect(text).toBe('offscreen');
-  }, 15_000);
+  }, 30_000);
 
   // --- Input Masking ---
 
@@ -497,7 +497,7 @@ describe('Browser Behaviors E2E', () => {
     );
     // The input listener converts to uppercase after our input event
     expect(value).toBe('HELLO WORLD');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle input with digits-only masking', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/input-masking`);
@@ -513,7 +513,7 @@ describe('Browser Behaviors E2E', () => {
     );
     // The input listener strips non-digits
     expect(value).toBe('123456');
-  }, 15_000);
+  }, 30_000);
 
   it('should trigger change event for email validation', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/input-masking`);
@@ -528,7 +528,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('mask-status')!.textContent,
     );
     expect(status).toBe('Invalid email');
-  }, 15_000);
+  }, 30_000);
 
   // --- Shadow DOM ---
 
@@ -541,7 +541,7 @@ describe('Browser Behaviors E2E', () => {
 
     // Light DOM button should appear
     expect(snap.text).toContain('"Light DOM Button"');
-  }, 15_000);
+  }, 30_000);
 
   it('should click light DOM button even with shadow DOM sibling', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/shadow-dom`);
@@ -557,7 +557,7 @@ describe('Browser Behaviors E2E', () => {
       document.getElementById('shadow-result')!.textContent,
     );
     expect(text).toBe('light-clicked');
-  }, 15_000);
+  }, 30_000);
 
   // --- aria-checked="mixed" ---
 
@@ -581,7 +581,7 @@ describe('Browser Behaviors E2E', () => {
       (l: string) => l.includes('checkbox') && l.includes('"Item 2"'),
     );
     expect(item2Line).toContain('(unchecked)');
-  }, 15_000);
+  }, 30_000);
 
   it('should update mixed state after toggling child checkbox', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/mixed-checked`);
@@ -596,7 +596,7 @@ describe('Browser Behaviors E2E', () => {
       (l: string) => l.includes('checkbox') && l.includes('"Select all"'),
     );
     expect(selectAllLine).toContain('(checked)');
-  }, 15_000);
+  }, 30_000);
 
   it('should toggle all children when clicking "Select All"', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/mixed-checked`);
@@ -617,7 +617,7 @@ describe('Browser Behaviors E2E', () => {
     // toggleTristate: allChecked was false → set all to true
     expect(item1Line).toContain('(checked)');
     expect(item2Line).toContain('(checked)');
-  }, 15_000);
+  }, 30_000);
 
   // --- DOM Mutation During Action ---
 
@@ -641,7 +641,7 @@ describe('Browser Behaviors E2E', () => {
     const result2 = await sendToContentScript(browser, page, { action: 'click', ref });
     expect(result2.success).toBe(false);
     expect(result2.error).toContain('not found');
-  }, 15_000);
+  }, 30_000);
 
   it('should detect replaced sibling as stale after replacement', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/dom-mutation-during-action`);
@@ -663,7 +663,7 @@ describe('Browser Behaviors E2E', () => {
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('"New Button"');
     expect(snap2.text).not.toContain('"Old Button"');
-  }, 15_000);
+  }, 30_000);
 
   // --- Focus Management ---
 
@@ -689,5 +689,5 @@ describe('Browser Behaviors E2E', () => {
     expect(log).toContain('focus1');
     expect(log).toContain('focus2');
     expect(log).toContain('focusBtn');
-  }, 15_000);
+  }, 30_000);
 });

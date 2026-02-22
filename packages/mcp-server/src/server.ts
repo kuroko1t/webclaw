@@ -8,7 +8,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { readFileSync } from 'node:fs';
 import { ERROR_RECOVERY } from 'webclaw-shared';
-import type { ErrorCode } from 'webclaw-shared';
+import type { BridgeMessage, BridgeMethod, ErrorCode } from 'webclaw-shared';
 import { WebSocketClient } from './ws-client.js';
 
 /** Format an error response with recovery suggestions */
@@ -35,6 +35,52 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
 
   const wsClient = options.wsClient;
 
+  // --- Session tab auto-assignment ---
+  // Each MCP session gets its own dedicated browser tab, preventing
+  // multiple sessions from stomping on each other's active tab.
+  let sessionTabId: number | null = null;
+
+  /** Resolve tabId: user-specified > session tab > auto-create new tab */
+  async function resolveTabId(requestedTabId?: number): Promise<number> {
+    if (requestedTabId !== undefined) return requestedTabId;
+    if (sessionTabId !== null) return sessionTabId;
+    const response = await wsClient.requestWithRetry('newTab', {});
+    if (response.type === 'error') {
+      throw new Error('Failed to create session tab');
+    }
+    const result = response.payload as { tabId: number };
+    sessionTabId = result.tabId;
+    return sessionTabId;
+  }
+
+  /**
+   * Send a request using the session tab, with TAB_NOT_FOUND recovery.
+   * If the session tab was closed externally, auto-creates a new one and retries.
+   */
+  async function requestWithSessionTab(
+    method: BridgeMethod,
+    params: Record<string, unknown>,
+    requestedTabId?: number
+  ): Promise<BridgeMessage> {
+    const resolvedTabId = await resolveTabId(requestedTabId);
+    const response = await wsClient.requestWithRetry(method, { ...params, tabId: resolvedTabId });
+
+    if (
+      response.type === 'error' &&
+      requestedTabId === undefined &&
+      sessionTabId !== null
+    ) {
+      const errorObj = response.payload as { code?: string };
+      if (errorObj?.code === 'TAB_NOT_FOUND') {
+        sessionTabId = null;
+        const newTabId = await resolveTabId(requestedTabId);
+        return wsClient.requestWithRetry(method, { ...params, tabId: newTabId });
+      }
+    }
+
+    return response;
+  }
+
   // --- Tool: navigate_to ---
   server.tool(
     'navigate_to',
@@ -44,7 +90,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
     },
     async ({ url, tabId }) => {
-      const response = await wsClient.requestWithRetry('navigate', { url, tabId });
+      const response = await requestWithSessionTab('navigate', { url }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -65,7 +111,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       focusRegion: z.string().optional().describe('Focus on a specific landmark region (e.g., "main", "nav", "header", "footer", "sidebar", "complementary", "banner", "contentinfo")'),
     },
     async ({ tabId, maxTokens, focusRegion }) => {
-      const response = await wsClient.requestWithRetry('snapshot', { tabId, maxTokens, focusRegion });
+      const response = await requestWithSessionTab('snapshot', { maxTokens, focusRegion }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -89,7 +135,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, snapshotId, tabId }) => {
-      const response = await wsClient.requestWithRetry('click', { ref, snapshotId, tabId });
+      const response = await requestWithSessionTab('click', { ref, snapshotId }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -109,7 +155,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, snapshotId, tabId }) => {
-      const response = await wsClient.requestWithRetry('hover', { ref, snapshotId, tabId });
+      const response = await requestWithSessionTab('hover', { ref, snapshotId }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -131,13 +177,12 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, text, snapshotId, clearFirst, tabId }) => {
-      const response = await wsClient.requestWithRetry('typeText', {
+      const response = await requestWithSessionTab('typeText', {
         ref,
         text,
         snapshotId,
         clearFirst,
-        tabId,
-      });
+      }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -158,12 +203,11 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, value, snapshotId, tabId }) => {
-      const response = await wsClient.requestWithRetry('selectOption', {
+      const response = await requestWithSessionTab('selectOption', {
         ref,
         value,
         snapshotId,
-        tabId,
-      });
+      }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -181,7 +225,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ tabId }) => {
-      const response = await wsClient.requestWithRetry('listWebMCPTools', { tabId });
+      const response = await requestWithSessionTab('listWebMCPTools', {}, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -210,11 +254,10 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ toolName, args, tabId }) => {
-      const response = await wsClient.requestWithRetry('invokeWebMCPTool', {
+      const response = await requestWithSessionTab('invokeWebMCPTool', {
         toolName,
         args,
-        tabId,
-      });
+      }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -239,7 +282,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ tabId }) => {
-      const response = await wsClient.requestWithRetry('screenshot', { tabId });
+      const response = await requestWithSessionTab('screenshot', {}, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -351,7 +394,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
     },
     async ({ tabId }) => {
-      const response = await wsClient.requestWithRetry('goBack', { tabId });
+      const response = await requestWithSessionTab('goBack', {}, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -370,7 +413,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
     },
     async ({ tabId }) => {
-      const response = await wsClient.requestWithRetry('goForward', { tabId });
+      const response = await requestWithSessionTab('goForward', {}, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -390,7 +433,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       bypassCache: z.boolean().optional().describe('Bypass browser cache (default: false)'),
     },
     async ({ tabId, bypassCache }) => {
-      const response = await wsClient.requestWithRetry('reload', { tabId, bypassCache });
+      const response = await requestWithSessionTab('reload', { bypassCache }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -410,7 +453,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       timeoutMs: z.number().int().positive().optional().describe('Maximum wait time in milliseconds (default: 30000)'),
     },
     async ({ tabId, timeoutMs }) => {
-      const response = await wsClient.requestWithRetry('waitForNavigation', { tabId, timeoutMs });
+      const response = await requestWithSessionTab('waitForNavigation', { timeoutMs }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -433,13 +476,12 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       snapshotId: z.string().min(1).optional().describe('Snapshot ID (required when using ref)'),
     },
     async ({ tabId, direction, amount, ref, snapshotId }) => {
-      const response = await wsClient.requestWithRetry('scrollPage', {
-        tabId,
+      const response = await requestWithSessionTab('scrollPage', {
         direction,
         amount,
         ref,
         snapshotId,
-      });
+      }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -482,12 +524,11 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
         throw new Error(`File "${f.name}": either base64Data or filePath must be provided`);
       });
 
-      const response = await wsClient.requestWithRetry('dropFiles', {
+      const response = await requestWithSessionTab('dropFiles', {
         ref,
         snapshotId,
         files: resolvedFiles,
-        tabId,
-      });
+      }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }

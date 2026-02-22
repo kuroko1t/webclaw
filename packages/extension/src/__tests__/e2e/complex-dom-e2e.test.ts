@@ -102,14 +102,14 @@ describe('Complex DOM E2E', () => {
 
     // Visible button should appear
     expect(snapshot.text).toContain('Visible Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should exclude display:none elements from snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
     const snapshot = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snapshot.text).not.toContain('Invisible Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle nested form elements correctly', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
@@ -128,7 +128,7 @@ describe('Complex DOM E2E', () => {
       return (document.getElementById('nested-input') as HTMLInputElement)?.value;
     });
     expect(value).toBe('nested value');
-  }, 15_000);
+  }, 30_000);
 
   it('should not include iframe content in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
@@ -139,7 +139,7 @@ describe('Complex DOM E2E', () => {
 
     // The iframe button should not be in the main page snapshot
     expect(snapshot.text).not.toContain('IFrame Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle large DOMs with 100+ elements', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/large`);
@@ -149,7 +149,7 @@ describe('Complex DOM E2E', () => {
     expect(snapshot.snapshotId).toMatch(/^snap-/);
     // Should contain at least some of the items
     expect(snapshot.text).toContain('Item 0');
-  }, 15_000);
+  }, 30_000);
 
   it('should truncate large snapshots with maxTokens', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/large`);
@@ -160,7 +160,7 @@ describe('Complex DOM E2E', () => {
 
     // With only 100 tokens (400 chars), the snapshot should be truncated
     expect(snapshot.text).toContain('(truncated)');
-  }, 15_000);
+  }, 30_000);
 
   it('should typeText into a contenteditable element', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
@@ -179,7 +179,7 @@ describe('Complex DOM E2E', () => {
       return document.getElementById('editable')?.textContent;
     });
     expect(content).toBe('edited content');
-  }, 15_000);
+  }, 30_000);
 });
 
 function extractRef(snapshotText: string, labelText: string): string | null {

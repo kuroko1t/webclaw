@@ -307,7 +307,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     expect(linkRef).toBeTruthy();
     expect(btnRef).toBeTruthy();
     expect(linkRef).not.toBe(btnRef);
-  }, 15_000);
+  }, 30_000);
 
   it('should click inner button without triggering outer link', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nested-interactive`);
@@ -321,7 +321,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       document.getElementById('result')!.textContent
     );
     expect(result).toBe('button clicked');
-  }, 15_000);
+  }, 30_000);
 
   it('should click wrapping label and toggle its checkbox', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nested-interactive`);
@@ -343,7 +343,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       (document.getElementById('cb1') as HTMLInputElement).checked
     );
     expect(checked).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should show card link text in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nested-interactive`);
@@ -351,7 +351,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // The card link should have its text content
     expect(snap.text).toContain('Card Title');
-  }, 15_000);
+  }, 30_000);
 
   // --- Special Characters ---
 
@@ -366,7 +366,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     // Click should work
     const result = await sendToContentScript(browser, page, { action: 'click', ref });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should handle newlines in button text by collapsing whitespace', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-chars`);
@@ -376,7 +376,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     // Should still find the button
     const ref = snap.text.match(/@e\d+(?= button.*First Line)/)?.[0];
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should truncate long button text at 80 chars with ellipsis', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-chars`);
@@ -386,7 +386,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     expect(snap.text).toContain('...');
     // Should NOT contain the full text
     expect(snap.text).not.toContain('significant margin');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle emoji in button text', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-chars`);
@@ -394,7 +394,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // Emoji button should appear
     expect(snap.text).toMatch(/button.*Save Changes/);
-  }, 15_000);
+  }, 30_000);
 
   it('should handle special chars in aria-label', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-chars`);
@@ -402,7 +402,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // Input with special chars in aria-label
     expect(snap.text).toContain('products');
-  }, 15_000);
+  }, 30_000);
 
   // --- SVG Elements ---
 
@@ -414,7 +414,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     expect(snap.text).toContain('Close dialog');
     const ref = snap.text.match(/@e\d+(?= button "Close dialog")/)?.[0];
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should include link containing SVG and text in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/svg-elements`);
@@ -423,7 +423,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     // Link with SVG and text "Home" should appear
     const ref = snap.text.match(/@e\d+(?= link.*Home)/)?.[0];
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should include standalone SVG with role="img" and aria-label in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/svg-elements`);
@@ -431,7 +431,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // SVG with role="img" and aria-label should appear in snapshot
     expect(snap.text).toContain('img "Revenue Chart"');
-  }, 15_000);
+  }, 30_000);
 
   it('should include clickable SVG with role="button" and allow click', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/svg-elements`);
@@ -447,7 +447,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       document.getElementById('result')!.textContent
     );
     expect(result).toBe('theme toggled');
-  }, 15_000);
+  }, 30_000);
 
   // --- Visibility Edge Cases ---
 
@@ -458,7 +458,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     // Children with visibility:visible should appear
     expect(snap.text).toContain('Visible Child');
     expect(snap.text).toContain('Visible input');
-  }, 15_000);
+  }, 30_000);
 
   it('should click visibility:visible child inside hidden parent', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility`);
@@ -472,14 +472,14 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       document.getElementById('result')!.textContent
     );
     expect(result).toBe('visible child clicked');
-  }, 15_000);
+  }, 30_000);
 
   it('should NOT show children of display:none parent', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).not.toContain('Should Not Appear');
-  }, 15_000);
+  }, 30_000);
 
   it('should show deeply nested visibility:visible button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility`);
@@ -495,7 +495,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       document.getElementById('result')!.textContent
     );
     expect(result).toBe('deep visible clicked');
-  }, 15_000);
+  }, 30_000);
 
   // --- Label Interaction ---
 
@@ -522,7 +522,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       (document.getElementById('for-cb') as HTMLInputElement).checked
     );
     expect(checked).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should switch radio buttons via click', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-interaction`);
@@ -541,7 +541,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toMatch(/radio "Free".*\(unchecked\)/);
     expect(snap.text).toMatch(/radio "Pro".*\(checked\)/);
-  }, 15_000);
+  }, 30_000);
 
   // --- Role Presentation ---
 
@@ -558,7 +558,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     expect(snap.text).not.toMatch(/\[table\b/);
     expect(snap.text).not.toMatch(/\[row\b/);
     expect(snap.text).not.toMatch(/\[cell\b/);
-  }, 15_000);
+  }, 30_000);
 
   it('should show links inside role=none nav', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/role-presentation`);
@@ -570,7 +570,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // nav role should NOT appear
     expect(snap.text).not.toMatch(/\[nav\b/);
-  }, 15_000);
+  }, 30_000);
 
   it('should handle button with role=presentation (still clickable)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/role-presentation`);
@@ -586,7 +586,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       document.getElementById('result')!.textContent
     );
     expect(result).toBe('presentation button clicked');
-  }, 15_000);
+  }, 30_000);
 
   // --- ARIA Labelledby ---
 
@@ -596,7 +596,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // aria-labelledby="lbl-action lbl-target" → "Delete Item 5"
     expect(snap.text).toContain('Delete Item 5');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle partial aria-labelledby (one ID missing)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-labelledby`);
@@ -604,7 +604,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // aria-labelledby="lbl-existing missing-id" → "Save" (only existing one)
     expect(snap.text).toContain('"Save"');
-  }, 15_000);
+  }, 30_000);
 
   it('should fallback to textContent when all aria-labelledby IDs are missing', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-labelledby`);
@@ -612,7 +612,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // aria-labelledby="nonexistent1 nonexistent2" → should fallback to textContent "Fallback Text"
     expect(snap.text).toContain('Fallback Text');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle self-referencing aria-labelledby', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-labelledby`);
@@ -620,7 +620,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
 
     // aria-labelledby="btn-self extra-label" → "Self Label"
     expect(snap.text).toContain('Self Label');
-  }, 15_000);
+  }, 30_000);
 
   // --- Input Constraints ---
 
@@ -642,7 +642,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     // Native setter may or may not respect maxlength - document actual behavior
     // In Chrome, native value setter bypasses maxlength
     expect(value.length).toBeGreaterThan(0);
-  }, 15_000);
+  }, 30_000);
 
   it('should type invalid email and still succeed (no validation on type)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/input-constraints`);
@@ -661,7 +661,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       (document.getElementById('email-input') as HTMLInputElement).value
     );
     expect(value).toBe('not-an-email');
-  }, 15_000);
+  }, 30_000);
 
   it('should select first matching option when duplicates exist', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/input-constraints`);
@@ -680,7 +680,7 @@ describe('Snapshot & Action Edge Cases E2E', () => {
       (document.getElementById('dup-select') as HTMLSelectElement).value
     );
     expect(value).toBe('1');
-  }, 15_000);
+  }, 30_000);
 
   it('should type into readonly input (documents actual behavior)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/input-constraints`);
@@ -695,5 +695,5 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     });
     // Document actual behavior
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 });

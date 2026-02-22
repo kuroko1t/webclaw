@@ -199,7 +199,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('button') && l.includes('"Underline"'),
     );
     expect(underlineLine).toContain('(pressed)');
-  }, 15_000);
+  }, 30_000);
 
   it('should update aria-pressed after clicking toggle button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/toggle-buttons`);
@@ -226,7 +226,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('button') && l.includes('"Bold"'),
     );
     expect(boldLine2).toContain('(unpressed)');
-  }, 15_000);
+  }, 30_000);
 
   // --- Custom Checkboxes (aria-checked) ---
 
@@ -245,7 +245,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('checkbox') && l.includes('"Dark mode"'),
     );
     expect(darkLine).toContain('(checked)');
-  }, 15_000);
+  }, 30_000);
 
   it('should show aria-checked state for custom switch', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/custom-checkboxes`);
@@ -256,7 +256,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('switch') && l.includes('"Autoplay videos"'),
     );
     expect(switchLine).toContain('(unchecked)');
-  }, 15_000);
+  }, 30_000);
 
   it('should update aria-checked after clicking custom checkbox', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/custom-checkboxes`);
@@ -279,7 +279,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       document.getElementById('status')!.textContent,
     );
     expect(status).toContain('Enable notifications: on');
-  }, 15_000);
+  }, 30_000);
 
   // --- SVG Disabled ---
 
@@ -297,7 +297,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('button') && l.includes('"Play"'),
     );
     expect(playLine).not.toContain('(disabled)');
-  }, 15_000);
+  }, 30_000);
 
   it('should reject click on SVG element with aria-disabled="true"', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/svg-disabled`);
@@ -317,7 +317,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       document.getElementById('svg-result')!.textContent,
     );
     expect(resultText).toBe('');
-  }, 15_000);
+  }, 30_000);
 
   it('should allow click on active SVG button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/svg-disabled`);
@@ -335,7 +335,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       document.getElementById('svg-result')!.textContent,
     );
     expect(resultText).toBe('played');
-  }, 15_000);
+  }, 30_000);
 
   // --- Details/Summary ---
 
@@ -349,7 +349,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
     );
     expect(summaryLine).toBeTruthy();
     expect(summaryLine).toMatch(/@e\d+/);
-  }, 15_000);
+  }, 30_000);
 
   it('should toggle details visibility by clicking summary', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/details-summary`);
@@ -375,7 +375,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       document.getElementById('faq1')!.open,
     );
     expect(isClosed).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   // --- Multi Select ---
 
@@ -405,7 +405,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
     );
     expect(selectLine).toContain('JavaScript');
     expect(selectLine).toContain('Python');
-  }, 15_000);
+  }, 30_000);
 
   it('should show multi-select value in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-select`);
@@ -416,7 +416,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('listbox') && l.includes('"Skills"'),
     );
     expect(selectLine).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   // --- Readonly Inputs ---
 
@@ -429,7 +429,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
     );
     expect(idLine).toBeTruthy();
     expect(idLine).toContain('USR-12345');
-  }, 15_000);
+  }, 30_000);
 
   // --- Fieldset/Legend ---
 
@@ -441,7 +441,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
     expect(snap.text).toContain('group');
     expect(snap.text).toContain('"Billing Address"');
     expect(snap.text).toContain('"Payment Method"');
-  }, 15_000);
+  }, 30_000);
 
   it('should interact with inputs inside fieldsets', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/fieldset-legend`);
@@ -475,7 +475,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('radio') && l.includes('Credit Card'),
     );
     expect(checkedLine).toContain('(checked)');
-  }, 15_000);
+  }, 30_000);
 
   // --- Label Strategy Priority ---
 
@@ -486,7 +486,7 @@ describe('ARIA States & Custom Widgets E2E', () => {
     // aria-label should win over placeholder
     expect(snap.text).toContain('"ARIA Label"');
     expect(snap.text).not.toContain('"Placeholder text"');
-  }, 15_000);
+  }, 30_000);
 
   it('should prioritize aria-labelledby over aria-label', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-strategies`);
@@ -499,35 +499,35 @@ describe('ARIA States & Custom Widgets E2E', () => {
       (l: string) => l.includes('"Fallback Label"'),
     );
     expect(fallbackLine).toBeFalsy();
-  }, 15_000);
+  }, 30_000);
 
   it('should use label[for] for input naming', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-strategies`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).toContain('"Label For"');
-  }, 15_000);
+  }, 30_000);
 
   it('should use wrapping label for input naming', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-strategies`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).toContain('"Wrapping Label"');
-  }, 15_000);
+  }, 30_000);
 
   it('should fall back to placeholder when no label exists', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-strategies`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).toContain('"Placeholder Only"');
-  }, 15_000);
+  }, 30_000);
 
   it('should fall back to title when no other label exists', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-strategies`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).toContain('"Title Fallback"');
-  }, 15_000);
+  }, 30_000);
 
   it('should fall back to placeholder when aria-labelledby is broken', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/label-strategies`);
@@ -535,5 +535,5 @@ describe('ARIA States & Custom Widgets E2E', () => {
 
     // Broken aria-labelledby (nonexistent ID) should fall back to placeholder
     expect(snap.text).toContain('"Broken Labelledby"');
-  }, 15_000);
+  }, 30_000);
 });

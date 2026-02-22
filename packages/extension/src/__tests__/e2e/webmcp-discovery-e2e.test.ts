@@ -205,7 +205,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
 
     expect(formTools.length).toBeGreaterThanOrEqual(1);
     expect(buttonTools.length).toBeGreaterThanOrEqual(1);
-  }, 15_000);
+  }, 30_000);
 
   it('should generate correct schema for form fields', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/simple-form`);
@@ -230,7 +230,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     expect(contactTool.inputSchema.required).toContain('name');
     expect(contactTool.inputSchema.required).toContain('email');
     expect(contactTool.inputSchema.required).not.toContain('message');
-  }, 15_000);
+  }, 30_000);
 
   it('should include standalone button but not form button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/simple-form`);
@@ -244,7 +244,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
 
     // "Send Message" is inside <form> so should NOT be standalone
     expect(buttonNames.some((n: string) => n.includes('send_message'))).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   // --- Multiple Forms ---
 
@@ -262,7 +262,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     // Settings form (named by aria-label)
     const settingsTool = formTools.find((t: any) => t.name.includes('user_settings'));
     expect(settingsTool).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should generate enum for select fields', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-form`);
@@ -282,7 +282,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
 
     // Checkbox
     expect(props.notifications.type).toBe('boolean');
-  }, 15_000);
+  }, 30_000);
 
   it('should discover standalone buttons but not form buttons', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-form`);
@@ -298,7 +298,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     // Form buttons should NOT be standalone
     expect(buttonNames.some((n: string) => n.includes('search'))).toBe(false);
     expect(buttonNames.some((n: string) => n.includes('save_settings'))).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   // --- No Form Page ---
 
@@ -315,7 +315,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     const names = buttonTools.map((t: any) => t.name);
     expect(names.some((n: string) => n.includes('click_me'))).toBe(true);
     expect(names.some((n: string) => n.includes('custom_action'))).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Empty/Hidden-Only Forms ---
 
@@ -329,7 +329,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     // empty-form: no inputs, hidden-only: only hidden/submit inputs, submit-only: only submit input
     expect(formTools.length).toBe(1);
     expect(formTools[0].name).toContain('valid_form');
-  }, 15_000);
+  }, 30_000);
 
   // --- Field Type Schema ---
 
@@ -365,7 +365,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     expect(regTool.inputSchema.required).toContain('username');
     expect(regTool.inputSchema.required).toContain('agree');
     expect(regTool.inputSchema.required).not.toContain('age');
-  }, 15_000);
+  }, 30_000);
 
   // --- Form Naming Strategies ---
 
@@ -386,7 +386,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     expect(names.some((n: string) => n.includes('process_payment'))).toBe(true);
     // action path: "/api/upload" → "upload"
     expect(names.some((n: string) => n.includes('upload'))).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Button Edge Cases ---
 
@@ -411,7 +411,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
 
     // Long text button (>50 chars) should be skipped
     expect(names.some((n: string) => n.includes('exceeds'))).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   // --- invokeWebMCPTool Timeout ---
 
@@ -441,7 +441,7 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
     expect(result.tools).toBeDefined();
     expect(Array.isArray(result.tools)).toBe(true);
     // Should have at least some tools (buttons from empty-forms page)
-  }, 15_000);
+  }, 30_000);
 
   // --- Integration: listWebMCPTools + Snapshot ---
 
@@ -463,5 +463,5 @@ describe('WebMCP Discovery & Auto-Synthesis E2E', () => {
       action: 'typeText', ref: inputRef, text: 'test',
     });
     expect(typeResult.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 });

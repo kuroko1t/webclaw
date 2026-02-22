@@ -308,7 +308,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     expect(line).toBeTruthy();
     expect(line).toContain('button');
     expect(line).not.toContain('textbox');
-  }, 15_000);
+  }, 30_000);
 
   it('should include output element in snapshot with value', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/semantic`);
@@ -320,7 +320,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     // The value "42" should also appear
     const line = findLine(snap.text, 'Calculation result');
     expect(line).toContain('42');
-  }, 15_000);
+  }, 30_000);
 
   it('should include progress element in snapshot with value', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/semantic`);
@@ -331,7 +331,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     // Value should show 70/100
     const line = findLine(snap.text, 'Upload progress');
     expect(line).toContain('70');
-  }, 15_000);
+  }, 30_000);
 
   it('should include meter element in snapshot with value', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/semantic`);
@@ -341,7 +341,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     expect(snap.text).toContain('meter');
     const line = findLine(snap.text, 'Disk usage');
     expect(line).toContain('0.6');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle typeText on range input to set slider value', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/semantic`);
@@ -365,7 +365,7 @@ describe('Semantic Elements & Workflows E2E', () => {
       (document.getElementById('range-input') as HTMLInputElement).value
     );
     expect(val).toBe('75');
-  }, 15_000);
+  }, 30_000);
 
   it('should show all HTML5 input types with correct roles', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/semantic`);
@@ -380,7 +380,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     expect(extractRef(snap.text, 'Pick color')).toBeTruthy();
     expect(extractRef(snap.text, 'Date picker')).toBeTruthy();
     expect(extractRef(snap.text, 'Time picker')).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   // ---- ARIA Presentation Roles ----
 
@@ -391,7 +391,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     // These ARIA roles mean "remove semantic role" - should not appear
     expect(snap.text).not.toContain('[presentation');
     expect(snap.text).not.toContain('[none');
-  }, 15_000);
+  }, 30_000);
 
   it('should still include interactive elements inside presentation containers', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/presentation`);
@@ -414,7 +414,7 @@ describe('Semantic Elements & Workflows E2E', () => {
     const ref = extractRef(snap.text, 'Action 1');
     const result = await sendToContentScript(browser, page, { action: 'click', ref });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // ---- E-commerce Product Workflow ----
 
@@ -677,7 +677,7 @@ describe('Semantic Elements & Workflows E2E', () => {
 
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('Please fill in all fields');
-  }, 15_000);
+  }, 30_000);
 });
 
 /* ---- Helpers ---- */

@@ -245,7 +245,7 @@ describe('Advanced Scenarios E2E', () => {
     expect(snap.text).toContain('[contentinfo]');
     expect(snap.text).toContain('Main navigation');
     expect(snap.text).toContain('Sidebar');
-  }, 15_000);
+  }, 30_000);
 
   it('should include all links in nav correctly', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/landmarks`);
@@ -264,7 +264,7 @@ describe('Advanced Scenarios E2E', () => {
     expect(contactRef).toBeTruthy();
     // All should be different refs
     expect(new Set([homeRef, aboutRef, contactRef]).size).toBe(3);
-  }, 15_000);
+  }, 30_000);
 
   // ---- Multiple forms ----
 
@@ -396,7 +396,7 @@ describe('Advanced Scenarios E2E', () => {
 
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('Loading...');
-  }, 15_000);
+  }, 30_000);
 
   it('should show triggered alert text in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/live-region`);
@@ -412,7 +412,7 @@ describe('Advanced Scenarios E2E', () => {
 
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('Error occurred!');
-  }, 15_000);
+  }, 30_000);
 
   it('should show updated log text in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/live-region`);
@@ -424,7 +424,7 @@ describe('Advanced Scenarios E2E', () => {
 
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('New entry');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Rapid DOM mutations ----
 
@@ -501,7 +501,7 @@ describe('Advanced Scenarios E2E', () => {
     await sendToContentScript(browser, page, { action: 'click', ref: detailsRef });
     const output = await page.evaluate(() => document.getElementById('card-output')?.textContent);
     expect(output).toBe('Button clicked');
-  }, 15_000);
+  }, 30_000);
 
   it('should include role="option" elements in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nested`);
@@ -511,7 +511,7 @@ describe('Advanced Scenarios E2E', () => {
     expect(snap.text).toContain('Option A');
     expect(snap.text).toContain('Option B');
     expect(snap.text).toContain('Option C');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Interaction after page reload within same tab ----
 

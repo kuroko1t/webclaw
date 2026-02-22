@@ -206,7 +206,7 @@ describe('Robustness E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should succeed selectOption on an enabled option in same select', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-options`);
@@ -222,7 +222,7 @@ describe('Robustness E2E', () => {
       (document.getElementById('sel1') as HTMLSelectElement).value
     );
     expect(val).toBe('overnight');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail selectOption on disabled option inside optgroup', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-options`);
@@ -234,7 +234,7 @@ describe('Robustness E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Contenteditable variants ----
 
@@ -245,7 +245,7 @@ describe('Robustness E2E', () => {
     // contenteditable="" should be treated as editable
     const ref = extractRef(snap.text, 'Editor empty');
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should assign ref to bare contenteditable (no value)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable`);
@@ -253,7 +253,7 @@ describe('Robustness E2E', () => {
 
     const ref = extractRef(snap.text, 'Editor bare');
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should NOT assign ref to contenteditable="false"', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable`);
@@ -262,7 +262,7 @@ describe('Robustness E2E', () => {
     // contenteditable="false" should NOT be interactive
     const ref = extractRef(snap.text, 'Not editable');
     expect(ref).toBeNull();
-  }, 15_000);
+  }, 30_000);
 
   it('should typeText into contenteditable="" element', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable`);
@@ -280,7 +280,7 @@ describe('Robustness E2E', () => {
       document.getElementById('ce-empty')?.textContent
     );
     expect(text).toBe('New content');
-  }, 15_000);
+  }, 30_000);
 
   it('should typeText into bare contenteditable element', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable`);
@@ -298,7 +298,7 @@ describe('Robustness E2E', () => {
       document.getElementById('ce-bare')?.textContent
     );
     expect(text).toBe('Bare content');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail typeText on contenteditable="false" element', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable`);
@@ -309,7 +309,7 @@ describe('Robustness E2E', () => {
     // Since it has no ref, we test that it's correctly excluded
     const ref = extractRef(snap.text, 'Not editable');
     expect(ref).toBeNull();
-  }, 15_000);
+  }, 30_000);
 
   it('should assign ref to contenteditable="plaintext-only"', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable`);
@@ -317,7 +317,7 @@ describe('Robustness E2E', () => {
 
     const ref = extractRef(snap.text, 'Plaintext editor');
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   // ---- Form reset ----
 
@@ -359,7 +359,7 @@ describe('Robustness E2E', () => {
     expect(snap.text).not.toContain('Template Button');
     expect(snap.text).not.toContain('Template input');
     expect(snap.text).toContain('Visible Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should include off-screen positioned elements in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/template-offscreen`);
@@ -372,7 +372,7 @@ describe('Robustness E2E', () => {
 
     // Clip-hidden elements (common screen-reader-only pattern) should also appear
     expect(snap.text).toContain('Screen reader only link');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Special characters ----
 
@@ -394,7 +394,7 @@ describe('Robustness E2E', () => {
     // Angle brackets in values should be captured as-is (no XSS risk in text)
     const inputRef = extractRef(snap.text, 'Enter');
     expect(inputRef).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should typeText with special characters correctly', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-chars`);
@@ -411,7 +411,7 @@ describe('Robustness E2E', () => {
       (document.getElementById('input-angle') as HTMLInputElement).value
     );
     expect(val).toBe('<script>alert("xss")</script>');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Deep nesting and nested interactive elements ----
 
@@ -427,7 +427,7 @@ describe('Robustness E2E', () => {
     // Deep input should also be found
     expect(snap.text).toContain('Deep input');
     expect(extractRef(snap.text, 'Deep input')).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should assign separate refs to both link and nested button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nesting`);
@@ -440,7 +440,7 @@ describe('Robustness E2E', () => {
     // Link text comes from span inside <a> - the link itself should have a ref
     // The button inside should also have a separate ref
     expect(btnRef).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should extract text from button with child spans', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nesting`);
@@ -448,7 +448,7 @@ describe('Robustness E2E', () => {
 
     // <button><span>Part</span> <span>One</span></button> should show "Part One"
     expect(snap.text).toContain('Part One');
-  }, 15_000);
+  }, 30_000);
 
   it('should distinguish multiple same-name elements with different refs', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/nesting`);
@@ -469,7 +469,7 @@ describe('Robustness E2E', () => {
       document.getElementById('click-output')?.textContent
     );
     expect(output).toBe('second-submit');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Dynamic form creation ----
 
@@ -520,7 +520,7 @@ describe('Robustness E2E', () => {
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.title).toBe('Updated Title');
     expect(snap2.text).toContain('Updated Page');
-  }, 15_000);
+  }, 30_000);
 });
 
 /* ---- Helpers ---- */

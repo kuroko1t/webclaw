@@ -376,7 +376,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
         arguments: { bypassCache: true },
       });
 
-      expect(mockWs.getLastCall()!.payload).toEqual({ bypassCache: true });
+      expect(mockWs.getLastCall()!.payload).toMatchObject({ bypassCache: true });
     });
 
     it('supports tabId option', async () => {
@@ -433,7 +433,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
         arguments: { timeoutMs: 10000 },
       });
 
-      expect(mockWs.getLastCall()!.payload).toEqual({ timeoutMs: 10000 });
+      expect(mockWs.getLastCall()!.payload).toMatchObject({ timeoutMs: 10000 });
     });
 
     it('handles NAVIGATION_TIMEOUT error with recovery hint', async () => {
@@ -499,7 +499,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
       expect(result.isError).toBeFalsy();
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toContain('Scrolled up');
-      expect(mockWs.getLastCall()!.payload).toEqual({
+      expect(mockWs.getLastCall()!.payload).toMatchObject({
         direction: 'up',
         amount: 500,
       });
@@ -522,7 +522,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
       expect(result.isError).toBeFalsy();
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toContain('Scrolled to element @e5');
-      expect(mockWs.getLastCall()!.payload).toEqual({
+      expect(mockWs.getLastCall()!.payload).toMatchObject({
         ref: '@e5',
         snapshotId: 'snap-123',
       });
@@ -569,7 +569,7 @@ describe('v0.4.0 New Tools E2E (MCP Protocol)', () => {
       expect(text).toContain('Hovered over @e3');
       expect(text).toContain('page_snapshot');
       expect(mockWs.getLastCall()!.method).toBe('hover');
-      expect(mockWs.getLastCall()!.payload).toEqual({ ref: '@e3', snapshotId: 'snap-789' });
+      expect(mockWs.getLastCall()!.payload).toMatchObject({ ref: '@e3', snapshotId: 'snap-789' });
     });
 
     it('supports optional tabId', async () => {

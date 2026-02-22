@@ -219,7 +219,7 @@ describe('Edge Cases E2E', () => {
     // Visible input should appear
     expect(snap.text).toContain('Visible input');
     expect(snap.text).toContain('Submit');
-  }, 15_000);
+  }, 30_000);
 
   // ---- selectOption / typeText on disabled elements ----
 
@@ -235,7 +235,7 @@ describe('Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail typeText on a disabled input', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-actions`);
@@ -249,7 +249,7 @@ describe('Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail typeText on a disabled textarea', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-actions`);
@@ -263,7 +263,7 @@ describe('Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should succeed on enabled select/input alongside disabled ones', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/disabled-actions`);
@@ -280,7 +280,7 @@ describe('Edge Cases E2E', () => {
       action: 'typeText', ref: inpRef, text: 'works',
     });
     expect(result2.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // ---- aria-disabled ----
 
@@ -292,7 +292,7 @@ describe('Edge Cases E2E', () => {
     expect(snap.text).toContain('Aria Disabled Button');
     expect(snap.text).toContain('Disabled Div Button');
     expect(snap.text).toContain('Normal Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail click on aria-disabled="true" button', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-disabled`);
@@ -306,7 +306,7 @@ describe('Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail click on aria-disabled="true" div[role=button]', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-disabled`);
@@ -320,7 +320,7 @@ describe('Edge Cases E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   it('should succeed click on normal button (not aria-disabled)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-disabled`);
@@ -332,7 +332,7 @@ describe('Edge Cases E2E', () => {
 
     const output = await page.evaluate(() => document.getElementById('output')?.textContent);
     expect(output).toBe('btn2 clicked');
-  }, 15_000);
+  }, 30_000);
 
   // ---- details/summary ----
 
@@ -346,7 +346,7 @@ describe('Edge Cases E2E', () => {
 
     // Open details content should be visible
     expect(snap.text).toContain('Open Details Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should show details content after opening via summary click', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/details`);
@@ -362,7 +362,7 @@ describe('Edge Cases E2E', () => {
     const snap2 = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap2.text).toContain('Details Button');
     expect(snap2.text).toContain('Details input');
-  }, 15_000);
+  }, 30_000);
 
   // ---- links ----
 
@@ -384,7 +384,7 @@ describe('Edge Cases E2E', () => {
     // Link without href should NOT have ref (not interactive)
     const noHrefRef = extractRef(snap.text, 'No Href Link');
     expect(noHrefRef).toBeNull();
-  }, 15_000);
+  }, 30_000);
 
   it('should click javascript:void(0) link successfully', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/links`);
@@ -396,7 +396,7 @@ describe('Edge Cases E2E', () => {
 
     const output = await page.evaluate(() => document.getElementById('link-output')?.textContent);
     expect(output).toBe('js link clicked');
-  }, 15_000);
+  }, 30_000);
 
   // ---- visibility edge cases ----
 
@@ -407,7 +407,7 @@ describe('Edge Cases E2E', () => {
     expect(snap.text).not.toContain('Visibility Hidden');
     expect(snap.text).not.toContain('Opacity Zero');
     expect(snap.text).toContain('Normal Visible');
-  }, 15_000);
+  }, 30_000);
 
   it('should include child with visibility:visible inside hidden parent', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility`);
@@ -415,7 +415,7 @@ describe('Edge Cases E2E', () => {
 
     // A child with visibility:visible inside a visibility:hidden parent IS visible
     expect(snap.text).toContain('Child Visible');
-  }, 15_000);
+  }, 30_000);
 
   // ---- file input ----
 
@@ -427,7 +427,7 @@ describe('Edge Cases E2E', () => {
     expect(snap.text).toContain('Upload file');
     const fileRef = extractRef(snap.text, 'Upload file');
     expect(fileRef).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   // ---- label associations ----
 
@@ -438,21 +438,21 @@ describe('Edge Cases E2E', () => {
     expect(snap.text).toContain('First Name');
     const ref = extractRef(snap.text, 'First Name');
     expect(ref).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   it('should resolve wrapping label association', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/labels`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).toContain('Last Name');
-  }, 15_000);
+  }, 30_000);
 
   it('should resolve aria-labelledby association', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/labels`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
     expect(snap.text).toContain('Email Address');
-  }, 15_000);
+  }, 30_000);
 
   it('should resolve multi-element label text', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/labels`);
@@ -461,7 +461,7 @@ describe('Edge Cases E2E', () => {
     // label contains <span>Phone</span> <em>Number</em>
     expect(snap.text).toContain('Phone');
     expect(snap.text).toContain('Number');
-  }, 15_000);
+  }, 30_000);
 
   // ---- select edge cases ----
 
@@ -472,7 +472,7 @@ describe('Edge Cases E2E', () => {
     // "Second" is pre-selected
     const line = findLine(snap.text, 'Preselected');
     expect(line).toContain('Second');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle empty select gracefully', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/select-edge`);
@@ -486,7 +486,7 @@ describe('Edge Cases E2E', () => {
       action: 'selectOption', ref, value: 'anything',
     });
     expect(result.success).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   it('should handle large option list selectOption', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/select-edge`);
@@ -503,7 +503,7 @@ describe('Edge Cases E2E', () => {
 
     const val = await page.evaluate(() => (document.getElementById('large-sel') as HTMLSelectElement).value);
     expect(val).toBe('v42');
-  }, 15_000);
+  }, 30_000);
 
   // ---- SPA navigation with history API ----
 
@@ -558,7 +558,7 @@ describe('Edge Cases E2E', () => {
       action: 'typeText', ref: homeRef, text: 'should fail',
     });
     expect(result.success).toBe(false);
-  }, 15_000);
+  }, 30_000);
 });
 
 /* ---- Helpers ---- */

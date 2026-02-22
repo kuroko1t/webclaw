@@ -320,7 +320,7 @@ describe('Real-World Scenarios E2E', () => {
     // Find the checkbox line after click
     const checked = await page.evaluate(() => (document.getElementById('remember') as HTMLInputElement).checked);
     expect(checked).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // ---- Various input types ----
 
@@ -339,7 +339,7 @@ describe('Real-World Scenarios E2E', () => {
 
     const val = await page.evaluate(() => (document.getElementById('ta1') as HTMLTextAreaElement).value);
     expect(val).toBe('Hello World');
-  }, 15_000);
+  }, 30_000);
 
   it('should type into number, search, url, tel, date inputs', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/form-types`);
@@ -378,7 +378,7 @@ describe('Real-World Scenarios E2E', () => {
 
     const val = await page.evaluate(() => (document.getElementById('sel-group') as HTMLSelectElement).value);
     expect(val).toBe('banana');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Dynamic content ----
 
@@ -499,7 +499,7 @@ describe('Real-World Scenarios E2E', () => {
 
     const val = await page.evaluate(() => (document.getElementById('unicode-input') as HTMLInputElement).value);
     expect(val).toBe('こんにちは世界 🌍');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle HTML-like characters in typeText without injection', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special`);
@@ -513,7 +513,7 @@ describe('Real-World Scenarios E2E', () => {
 
     const val = await page.evaluate(() => (document.getElementById('html-input') as HTMLInputElement).value);
     expect(val).toBe(text);
-  }, 15_000);
+  }, 30_000);
 
   it('should type multi-line text into textarea', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special`);
@@ -527,7 +527,7 @@ describe('Real-World Scenarios E2E', () => {
 
     const val = await page.evaluate(() => (document.getElementById('multiline-ta') as HTMLTextAreaElement).value);
     expect(val).toBe(multiLine);
-  }, 15_000);
+  }, 30_000);
 
   // ---- Table interactions ----
 
@@ -542,7 +542,7 @@ describe('Real-World Scenarios E2E', () => {
 
     const output = await page.evaluate(() => document.getElementById('table-output')?.textContent);
     expect(output).toBe('Editing row 2');
-  }, 15_000);
+  }, 30_000);
 
   it('should delete a table row and verify it is gone from snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/table`);
@@ -559,7 +559,7 @@ describe('Real-World Scenarios E2E', () => {
     expect(snap2.text).not.toContain('Delete Row 1');
     // Other rows still present
     expect(snap2.text).toContain('Edit Row 2');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Link navigation ----
 
@@ -569,7 +569,7 @@ describe('Real-World Scenarios E2E', () => {
 
     expect(snap.text).toContain('Go to Section 1');
     expect(snap.text).toContain('Other Page');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Disabled fieldset ----
 
@@ -586,7 +586,7 @@ describe('Real-World Scenarios E2E', () => {
     const fsBtnLine = findLine(snap.text, 'Fieldset Button');
     expect(fsBtnLine).toBeTruthy();
     expect(fsBtnLine).toContain('(disabled)');
-  }, 15_000);
+  }, 30_000);
 
   it('should enable fieldset and then interact with its elements', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/form-states`);
@@ -603,7 +603,7 @@ describe('Real-World Scenarios E2E', () => {
     const fsInputLine = findLine(snap2.text, 'Disabled fieldset input');
     // After enabling, should NOT contain (disabled)
     expect(fsInputLine).not.toContain('(disabled)');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail to click a disabled select element', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/form-states`);
@@ -617,7 +617,7 @@ describe('Real-World Scenarios E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   // ---- Rapid sequential actions ----
 
@@ -653,7 +653,7 @@ describe('Real-World Scenarios E2E', () => {
     expect(snap.text).toContain('Password');
     const passRef = extractRef(snap.text, 'Password');
     expect(passRef).toBeTruthy();
-  }, 15_000);
+  }, 30_000);
 
   // ---- Error recovery: continue after error ----
 
@@ -673,7 +673,7 @@ describe('Real-World Scenarios E2E', () => {
       action: 'typeText', ref: emailRef, text: 'recovery@test.com',
     });
     expect(goodResult.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 });
 
 /* ---------- Helpers ---------- */

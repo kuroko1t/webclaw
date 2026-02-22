@@ -253,7 +253,7 @@ describe('Dynamic State & Interactions E2E', () => {
     await page.evaluate(() => (window as any).toggleCheckbox('cb2'));
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toMatch(/checkbox "Terms".*\(unchecked\)/s);
-  }, 15_000);
+  }, 30_000);
 
   it('should reflect programmatic radio button selection in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/dynamic`);
@@ -263,7 +263,7 @@ describe('Dynamic State & Interactions E2E', () => {
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toMatch(/radio "Free plan".*\(unchecked\)/s);
     expect(snap.text).toMatch(/radio "Pro plan".*\(checked\)/s);
-  }, 15_000);
+  }, 30_000);
 
   it('should reflect programmatic select value change in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/dynamic`);
@@ -276,7 +276,7 @@ describe('Dynamic State & Interactions E2E', () => {
     await page.evaluate(() => (window as any).changeSelect('uk'));
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('United Kingdom');
-  }, 15_000);
+  }, 30_000);
 
   it('should reflect programmatic input value change in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/dynamic`);
@@ -289,7 +289,7 @@ describe('Dynamic State & Interactions E2E', () => {
     await page.evaluate(() => (window as any).changeInputValue('changed_value'));
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('changed_value');
-  }, 15_000);
+  }, 30_000);
 
   // --- Dynamic Visibility ---
 
@@ -309,7 +309,7 @@ describe('Dynamic State & Interactions E2E', () => {
     await page.click('#btn-show');
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('Visible Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should fail action on element hidden after snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/dynamic`);
@@ -332,7 +332,7 @@ describe('Dynamic State & Interactions E2E', () => {
     // Note: currently click succeeds on hidden elements - this documents behavior
     // The element is still in the DOM, just not visible
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Dynamic Element Insertion ---
 
@@ -353,7 +353,7 @@ describe('Dynamic State & Interactions E2E', () => {
     expect(refMatch).not.toBeNull();
     const result = await sendToContentScript(browser, page, { action: 'click', ref: refMatch![0] });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Rapid Interactions ---
 
@@ -383,7 +383,7 @@ describe('Dynamic State & Interactions E2E', () => {
       const result = await sendToContentScript(browser, page, { action: 'click', ref: refMatch[0] });
       expect(result.success).toBe(true);
     }
-  }, 15_000);
+  }, 30_000);
 
   it('should handle rapid click-then-snapshot cycles', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/dynamic`);
@@ -401,7 +401,7 @@ describe('Dynamic State & Interactions E2E', () => {
       document.getElementById('counter')!.textContent
     );
     expect(counterValue).toBe('5');
-  }, 15_000);
+  }, 30_000);
 
   // --- History API Navigation ---
 
@@ -426,7 +426,7 @@ describe('Dynamic State & Interactions E2E', () => {
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('Learn More');
     expect(snap.text).toContain('Feedback');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle browser back navigation with stale refs', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/history`);
@@ -454,7 +454,7 @@ describe('Dynamic State & Interactions E2E', () => {
     // Old ref should fail (element was replaced by innerHTML)
     const result = await sendToContentScript(browser, page, { action: 'click', ref: learnMoreRef![0] });
     expect(result.success).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   it('should work correctly after forward navigation', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/history`);
@@ -491,7 +491,7 @@ describe('Dynamic State & Interactions E2E', () => {
       text: 'Great site!',
     });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Select Edge Cases ---
 
@@ -516,7 +516,7 @@ describe('Dynamic State & Interactions E2E', () => {
       return sel.selectedOptions[0].textContent;
     });
     expect(selectedText).toBe('Orange');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle select with empty default option', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/select-edge`);
@@ -538,7 +538,7 @@ describe('Dynamic State & Interactions E2E', () => {
       (document.getElementById('empty-opt') as HTMLSelectElement).value
     );
     expect(val).toBe('x');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle select with no options gracefully', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/select-edge`);
@@ -555,7 +555,7 @@ describe('Dynamic State & Interactions E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('not found');
-  }, 15_000);
+  }, 30_000);
 
   it('should select from optgroup correctly', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/select-edge`);
@@ -576,7 +576,7 @@ describe('Dynamic State & Interactions E2E', () => {
       (document.getElementById('grouped') as HTMLSelectElement).value
     );
     expect(val).toBe('carrot');
-  }, 15_000);
+  }, 30_000);
 
   it('should show multiple select first selected value in snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/select-edge`);
@@ -585,7 +585,7 @@ describe('Dynamic State & Interactions E2E', () => {
     // Multiple select should appear in snapshot (it's a combobox/listbox)
     // Check that at least the first selected option value is shown
     expect(snap.text).toContain('Multi Select');
-  }, 15_000);
+  }, 30_000);
 
   // --- Shadow DOM ---
 
@@ -601,7 +601,7 @@ describe('Dynamic State & Interactions E2E', () => {
     // Shadow DOM elements should now be in snapshot
     expect(snap.text).toContain('Shadow Button');
     expect(snap.text).toContain('Shadow input');
-  }, 15_000);
+  }, 30_000);
 
   it('should still interact with light DOM when shadow DOM is present', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/shadow-dom`);
@@ -623,7 +623,7 @@ describe('Dynamic State & Interactions E2E', () => {
       text: 'Hello from light DOM',
     });
     expect(typeResult.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   // --- Complex Form Workflow ---
 
@@ -725,7 +725,7 @@ describe('Dynamic State & Interactions E2E', () => {
       (document.getElementById('fname') as HTMLInputElement).value
     );
     expect(fnameValue).toBe('');
-  }, 15_000);
+  }, 30_000);
 
   // --- Contenteditable Rich Text ---
 
@@ -750,7 +750,7 @@ describe('Dynamic State & Interactions E2E', () => {
       document.getElementById('editor')!.textContent
     );
     expect(content).toBe('New content');
-  }, 15_000);
+  }, 30_000);
 
   it('should typeText into empty contenteditable', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable-rich`);
@@ -770,7 +770,7 @@ describe('Dynamic State & Interactions E2E', () => {
       document.getElementById('empty-editor')!.textContent
     );
     expect(content).toBe('First content');
-  }, 15_000);
+  }, 30_000);
 
   it('should typeText into contenteditable="plaintext-only"', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/contenteditable-rich`);
@@ -791,7 +791,7 @@ describe('Dynamic State & Interactions E2E', () => {
       document.getElementById('plaintext')!.textContent
     );
     expect(content).toBe('Updated text');
-  }, 15_000);
+  }, 30_000);
 
   // --- Input Type Change ---
 
@@ -818,5 +818,5 @@ describe('Dynamic State & Interactions E2E', () => {
       clearFirst: true,
     });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 });

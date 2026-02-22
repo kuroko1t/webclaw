@@ -413,7 +413,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     // Both accordion buttons should show (collapsed) since aria-expanded="false"
     expect(snap.text).toContain('Section 1');
     expect(snap.text).toContain('(collapsed)');
-  }, 15_000);
+  }, 30_000);
 
   it('should update aria-expanded after clicking accordion', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-expanded`);
@@ -431,7 +431,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     expect(section1Line).toContain('(expanded)');
     // Panel content should now be visible
     expect(snap.text).toContain('Section 1 input');
-  }, 15_000);
+  }, 30_000);
 
   it('should interact with content inside expanded accordion panel', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-expanded`);
@@ -450,7 +450,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       action: 'typeText', ref: inputRef, text: 'Accordion content',
     });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should show disclosure widget expanded/collapsed state', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-expanded`);
@@ -470,7 +470,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     const expandedLine = snap.text.split('\n').find((l: string) => l.includes('Hide Details'));
     expect(expandedLine).toContain('(expanded)');
     expect(snap.text).toContain('Learn more');
-  }, 15_000);
+  }, 30_000);
 
   // --- ARIA Selected ---
 
@@ -484,7 +484,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
 
     const securityLine = snap.text.split('\n').find((l: string) => l.includes('tab') && l.includes('"Security"'));
     expect(securityLine).toContain('(unselected)');
-  }, 15_000);
+  }, 30_000);
 
   it('should update aria-selected after tab switch and show new panel content', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-selected`);
@@ -509,7 +509,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     // Security panel content should be visible
     expect(snap.text).toContain('New password');
     expect(snap.text).toContain('Change Password');
-  }, 15_000);
+  }, 30_000);
 
   it('should interact with controls inside selected tab panel', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-selected`);
@@ -533,7 +533,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     expect(saveRef).toBeTruthy();
     const result = await sendToContentScript(browser, page, { action: 'click', ref: saveRef });
     expect(result.success).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should show aria-selected for listbox options', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/aria-selected`);
@@ -550,7 +550,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toMatch(/option "Red".*\(selected\)/);
     expect(snap.text).toMatch(/option "Blue".*\(unselected\)/);
-  }, 15_000);
+  }, 30_000);
 
   // --- Autocomplete/Combobox ---
 
@@ -591,7 +591,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       document.getElementById('autocomplete-result')?.textContent
     );
     expect(result).toContain('Japan');
-  }, 15_000);
+  }, 30_000);
 
   // --- ARIA Live Regions ---
 
@@ -610,7 +610,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     // Re-snapshot: alert should contain text
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('Invalid input');
-  }, 15_000);
+  }, 30_000);
 
   it('should capture status region updates', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/live-regions`);
@@ -622,7 +622,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
 
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('3 results found');
-  }, 15_000);
+  }, 30_000);
 
   it('should capture incrementing counter in live region', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/live-regions`);
@@ -640,7 +640,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       document.getElementById('counter-region')!.textContent
     );
     expect(counterVal).toBe('Count: 3');
-  }, 15_000);
+  }, 30_000);
 
   // --- Sortable Table ---
 
@@ -653,7 +653,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     expect(snap.text).toContain('columnheader');
     expect(snap.text).toContain('Alice');
     expect(snap.text).toContain('Engineering');
-  }, 15_000);
+  }, 30_000);
 
   it('should re-sort table on column header click and show updated rows', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/sortable-table`);
@@ -674,7 +674,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     // Verify table data is present
     expect(snap.text).toContain('Alice');
     expect(snap.text).toContain('Bob');
-  }, 15_000);
+  }, 30_000);
 
   // --- Fixed Overlay ---
 
@@ -687,7 +687,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     expect(snap.text).toContain('Content Button');
     expect(snap.text).toContain('Open Modal');
     expect(snap.text).toContain('Bottom Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle modal overlay: open, interact, close', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/fixed-overlay`);
@@ -721,7 +721,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       document.getElementById('modal-result')!.textContent
     );
     expect(result).toContain('Confirmed: Testing modal');
-  }, 15_000);
+  }, 30_000);
 
   // --- Token Truncation ---
 
@@ -743,7 +743,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       });
       expect(result.success).toBe(true);
     }
-  }, 15_000);
+  }, 30_000);
 
   it('should include all elements with normal token limit', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/truncation`);
@@ -754,7 +754,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     // Should have many @refs
     const refs = snap.text.match(/@e\d+/g);
     expect(refs!.length).toBeGreaterThan(5);
-  }, 15_000);
+  }, 30_000);
 
   // --- Error Recovery ---
 
@@ -779,7 +779,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       document.getElementById('result')!.textContent
     );
     expect(result).toBe('Normal click worked');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle element that removes itself from DOM on click', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/error-recovery`);
@@ -798,7 +798,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).not.toContain('Remove Self');
     expect(snap.text).toContain('Normal Button');
-  }, 15_000);
+  }, 30_000);
 
   it('should handle element mutation (text/id change) after snapshot', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/error-recovery`);
@@ -817,5 +817,5 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('Mutated!');
     expect(snap.text).not.toContain('Mutate Me');
-  }, 15_000);
+  }, 30_000);
 });

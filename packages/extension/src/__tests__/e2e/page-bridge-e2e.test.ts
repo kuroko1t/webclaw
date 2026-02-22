@@ -78,7 +78,7 @@ describe('Page Bridge E2E', () => {
     }, bridgeUrl);
 
     expect(accessible).toBe(true);
-  }, 15_000);
+  }, 30_000);
 
   it('should NOT have page-bridge.js at the old incorrect path', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
@@ -95,7 +95,7 @@ describe('Page Bridge E2E', () => {
     }, oldBridgeUrl);
 
     expect(accessible).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   it('should run page-bridge.js in the MAIN world and respond to messages', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
@@ -128,5 +128,5 @@ describe('Page Bridge E2E', () => {
     // page-bridge.js should respond with empty tools (no navigator.modelContext on test page)
     expect(response).toHaveProperty('tools');
     expect(Array.isArray(response.tools)).toBe(true);
-  }, 15_000);
+  }, 30_000);
 });

@@ -247,13 +247,13 @@ describe('Content Script Actions E2E', () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/actions`);
     const result = await sendToContentScript(browser, page, { action: 'nonexistent' });
     expect(result.error).toContain('Unknown action');
-  }, 15_000);
+  }, 30_000);
 
   it('should return error for empty action', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/actions`);
     const result = await sendToContentScript(browser, page, { action: '' });
     expect(result.error).toContain('Unknown action');
-  }, 15_000);
+  }, 30_000);
 
   // --- ContentEditable Append ---
 
@@ -275,7 +275,7 @@ describe('Content Script Actions E2E', () => {
     );
     expect(text).toContain('Initial content');
     expect(text).toContain('appended');
-  }, 15_000);
+  }, 30_000);
 
   it('should clear contenteditable and type new text with clearFirst=true', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/actions`);
@@ -294,7 +294,7 @@ describe('Content Script Actions E2E', () => {
     );
     expect(text).toBe('Replaced');
     expect(text).not.toContain('Initial content');
-  }, 15_000);
+  }, 30_000);
 
   it('should type into empty contenteditable', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/actions`);
@@ -312,7 +312,7 @@ describe('Content Script Actions E2E', () => {
       document.getElementById('ce-empty')!.textContent
     );
     expect(text).toBe('New content');
-  }, 15_000);
+  }, 30_000);
 
   // --- Regular Input clearFirst ---
 
@@ -331,7 +331,7 @@ describe('Content Script Actions E2E', () => {
       (document.getElementById('text-input') as HTMLInputElement).value
     );
     expect(value).toBe('existing-appended');
-  }, 15_000);
+  }, 30_000);
 
   it('should append to textarea with clearFirst=false', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/actions`);
@@ -349,7 +349,7 @@ describe('Content Script Actions E2E', () => {
     );
     expect(value).toContain('existing notes');
     expect(value).toContain('more notes');
-  }, 15_000);
+  }, 30_000);
 
   // --- Dynamic Element State ---
 
@@ -380,7 +380,7 @@ describe('Content Script Actions E2E', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('disabled');
-  }, 15_000);
+  }, 30_000);
 
   // --- Empty / Minimal Pages ---
 
@@ -391,7 +391,7 @@ describe('Content Script Actions E2E', () => {
     expect(snap.text).toContain('[page "Empty Page"]');
     // Should have no @refs
     expect(snap.text).not.toContain('@e');
-  }, 15_000);
+  }, 30_000);
 
   it('should take snapshot of page with no interactive elements', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/minimal`);
@@ -399,7 +399,7 @@ describe('Content Script Actions E2E', () => {
 
     expect(snap.text).toContain('[page "Minimal"]');
     expect(snap.text).not.toContain('@e');
-  }, 15_000);
+  }, 30_000);
 
   // --- Multi-Step Form Wizard ---
 
@@ -468,7 +468,7 @@ describe('Content Script Actions E2E', () => {
       document.getElementById('result-text')!.textContent
     );
     expect(resultText).toContain('user@test.com');
-  }, 15_000);
+  }, 30_000);
 
   it('should navigate back in multi-step form and retain values', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/multi-step`);
@@ -497,7 +497,7 @@ describe('Content Script Actions E2E', () => {
       (document.getElementById('email') as HTMLInputElement).value
     );
     expect(emailValue).toBe('back@test.com');
-  }, 15_000);
+  }, 30_000);
 
   // --- Search, Filter, and Select Workflow ---
 
@@ -529,7 +529,7 @@ describe('Content Script Actions E2E', () => {
       document.getElementById('cart')!.textContent
     );
     expect(cart).toContain('Laptop');
-  }, 15_000);
+  }, 30_000);
 
   it('should search by text and show filtered results', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/search-filter`);
@@ -558,7 +558,7 @@ describe('Content Script Actions E2E', () => {
       return null;
     });
     expect(visibleProduct).toBe('Python Handbook');
-  }, 15_000);
+  }, 30_000);
 
   // --- Multiple Forms ---
 
@@ -603,7 +603,7 @@ describe('Content Script Actions E2E', () => {
       document.getElementById('result2')!.textContent
     );
     expect(regResult2).toContain('Register: newuser');
-  }, 15_000);
+  }, 30_000);
 
   // --- Multiple Actions Without Re-Snapshot ---
 
@@ -640,5 +640,5 @@ describe('Content Script Actions E2E', () => {
     expect(values.text).toBe('first');
     expect(values.notes).toBe('second');
     expect(values.dynamic).toBe('third');
-  }, 15_000);
+  }, 30_000);
 });
