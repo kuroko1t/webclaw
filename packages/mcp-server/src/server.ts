@@ -511,22 +511,15 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       files: z.array(z.object({
         name: z.string().min(1).describe('File name (e.g., "image.png")'),
         mimeType: z.string().min(1).describe('MIME type (e.g., "image/png")'),
-        base64Data: z.string().optional().describe('Base64-encoded file content'),
-        filePath: z.string().optional().describe('Local file path (alternative to base64Data — the server reads the file)'),
+        filePath: z.string().min(1).describe('Local file path (the server reads the file)'),
       })).min(1).describe('Files to drop'),
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ ref, snapshotId, files, tabId }) => {
-      // Resolve filePath → base64Data for each file entry
+      // Read files from disk and convert to base64 for the extension
       const resolvedFiles = files.map((f) => {
-        if (f.base64Data) {
-          return { name: f.name, mimeType: f.mimeType, base64Data: f.base64Data };
-        }
-        if (f.filePath) {
-          const data = readFileSync(f.filePath);
-          return { name: f.name, mimeType: f.mimeType, base64Data: data.toString('base64') };
-        }
-        throw new Error(`File "${f.name}": either base64Data or filePath must be provided`);
+        const data = readFileSync(f.filePath);
+        return { name: f.name, mimeType: f.mimeType, base64Data: data.toString('base64') };
       });
 
       const response = await requestWithSessionTab('dropFiles', {
