@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report a bug in WebClaw
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the issue
+      placeholder: |
+        1. Navigate to ...
+        2. Call page_snapshot
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Found in chrome://extensions/ or manifest.json
+      placeholder: "0.7.4"
+    validations:
+      required: true
+
+  - type: input
+    id: mcp-server-version
+    attributes:
+      label: MCP server version (npm)
+      placeholder: "0.7.4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mcp-client
+    attributes:
+      label: MCP Client
+      options:
+        - Claude Desktop
+        - Claude Code
+        - Cursor
+        - VS Code (Copilot)
+        - Windsurf
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & version
+      placeholder: "Chrome 131"
+
+  - type: textarea
+    id: snapshot
+    attributes:
+      label: Snapshot output or error log
+      description: Paste relevant snapshot text, console errors, or MCP server logs
+      render: text
