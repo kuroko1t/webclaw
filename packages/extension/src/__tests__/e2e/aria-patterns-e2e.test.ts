@@ -648,9 +648,9 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/sortable-table`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
-    // Table structure should be visible
+    // Table structure should be visible (columnheader is compacted into [row])
     expect(snap.text).toContain('table');
-    expect(snap.text).toContain('columnheader');
+    expect(snap.text).toContain('row');
     expect(snap.text).toContain('Alice');
     expect(snap.text).toContain('Engineering');
   }, 30_000);

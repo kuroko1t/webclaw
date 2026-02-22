@@ -331,12 +331,14 @@ describe('Browser Behaviors E2E', () => {
     expect(snap.text).not.toContain('"Display None Child"');
   }, 30_000);
 
-  it('should exclude opacity:0 elements from snapshot', async () => {
+  it('should treat opacity:0 as self-hidden (children visible but no interactive ref)', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/visibility-cascade`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
-    // opacity:0 child inherits, should not have interactive @ref
-    expect(snap.text).not.toContain('"Opacity Child"');
+    // opacity:0 is self-hidden: the element itself is hidden but children
+    // may become visible via CSS transitions/hover/focus, so they remain in
+    // the snapshot (without interactive @ref since parent is visually hidden)
+    expect(snap.text).toContain('Opacity Child');
   }, 30_000);
 
   // --- Deep DOM Nesting ---

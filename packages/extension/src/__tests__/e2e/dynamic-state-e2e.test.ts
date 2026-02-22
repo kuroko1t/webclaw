@@ -745,9 +745,9 @@ describe('Dynamic State & Interactions E2E', () => {
     });
     expect(result.success).toBe(true);
 
-    // Verify content was replaced
+    // Verify content was replaced (trim whitespace from DOM structure)
     const content = await page.evaluate(() =>
-      document.getElementById('editor')!.textContent
+      document.getElementById('editor')!.textContent?.trim()
     );
     expect(content).toBe('New content');
   }, 30_000);
