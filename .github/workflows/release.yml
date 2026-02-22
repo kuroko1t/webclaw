@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chrome for Testing
+        run: |
+          npx @puppeteer/browsers install chrome@stable --path /tmp/chrome-for-testing
+          CHROME_BIN=$(find /tmp/chrome-for-testing -name chrome -type f | head -1)
+          echo "CHROME_PATH=$CHROME_BIN" >> $GITHUB_ENV
+          $CHROME_BIN --version
+      - run: pnpm build
+      - run: pnpm exec turbo run test:unit
+      - name: Run E2E tests
+        run: pnpm --filter @webclaw/extension test:e2e
+        timeout-minutes: 15
+
+  release:
+    name: Release & Publish
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Extension zipをビルド
+      - name: Build extension zip
+        run: |
+          cd packages/extension/dist
+          zip -r ../../../webclaw-extension-${GITHUB_REF_NAME}.zip .
+
+      # GitHub Release作成 + zip添付
+      - name: Create GitHub Release
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            webclaw-extension-${GITHUB_REF_NAME}.zip \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # npm publish
+      - name: Publish webclaw-shared
+        run: pnpm --filter webclaw-shared publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish webclaw-mcp
+        run: pnpm --filter webclaw-mcp publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
