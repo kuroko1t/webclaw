@@ -31,10 +31,47 @@ import type { DialogHandler } from './dialog-handler';
 /** Default timeout for waiting for tab load (30 seconds) */
 const TAB_LOAD_TIMEOUT_MS = 30_000;
 
+/** Default timeout for content script responses (fires before MCP server timeout to avoid retries) */
+const CONTENT_SCRIPT_TIMEOUT_MS = 10_000;
+
 export class MessageRouter {
   private dialogHandler?: DialogHandler;
 
   constructor(private tabManager: TabManager) {}
+
+  /**
+   * Send a message to the content script with a timeout.
+   * When the timeout fires (e.g. dialog blocking JS), returns a descriptive
+   * error instead of letting the MCP server's retry-able timeout trigger.
+   */
+  private sendToContentScript<T = unknown>(
+    tabId: number,
+    message: { action: string; [key: string]: unknown },
+    timeoutMs = CONTENT_SCRIPT_TIMEOUT_MS
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(
+          new Error(
+            'Content script is not responding. ' +
+              'A JavaScript dialog (alert/confirm/prompt) may be blocking the page. ' +
+              'Use handle_dialog to dismiss it first.'
+          )
+        );
+      }, timeoutMs);
+
+      this.tabManager.sendToContentScript<T>(tabId, message).then(
+        (result) => {
+          clearTimeout(timer);
+          resolve(result);
+        },
+        (err) => {
+          clearTimeout(timer);
+          reject(err);
+        }
+      );
+    });
+  }
 
   /** Set the dialog handler (injected after construction to avoid circular deps) */
   setDialogHandler(handler: DialogHandler): void {
@@ -207,7 +244,7 @@ export class MessageRouter {
 
   private async handleSnapshot(params: PageSnapshotParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
-    const result = await this.tabManager.sendToContentScript(tabId, {
+    const result = await this.sendToContentScript(tabId, {
       action: 'snapshot',
       maxTokens: params.maxTokens,
       focusRegion: params.focusRegion,
@@ -222,7 +259,7 @@ export class MessageRouter {
   private async handleClick(params: ClickParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.tabManager.sendToContentScript(tabId, {
+    return this.sendToContentScript(tabId, {
       action: 'click',
       ref: params.ref,
     });
@@ -231,7 +268,7 @@ export class MessageRouter {
   private async handleHover(params: HoverParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.tabManager.sendToContentScript(tabId, {
+    return this.sendToContentScript(tabId, {
       action: 'hover',
       ref: params.ref,
     });
@@ -240,7 +277,7 @@ export class MessageRouter {
   private async handleTypeText(params: TypeTextParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.tabManager.sendToContentScript(tabId, {
+    return this.sendToContentScript(tabId, {
       action: 'typeText',
       ref: params.ref,
       text: params.text,
@@ -253,7 +290,7 @@ export class MessageRouter {
   ): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.tabManager.sendToContentScript(tabId, {
+    return this.sendToContentScript(tabId, {
       action: 'selectOption',
       ref: params.ref,
       value: params.value,
@@ -264,7 +301,7 @@ export class MessageRouter {
     params: ListWebMCPToolsParams
   ): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
-    return this.tabManager.sendToContentScript(tabId, {
+    return this.sendToContentScript(tabId, {
       action: 'listWebMCPTools',
     });
   }
@@ -273,11 +310,11 @@ export class MessageRouter {
     params: InvokeWebMCPToolParams
   ): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
-    return this.tabManager.sendToContentScript(tabId, {
-      action: 'invokeWebMCPTool',
-      toolName: params.toolName,
-      args: params.args,
-    });
+    return this.sendToContentScript(
+      tabId,
+      { action: 'invokeWebMCPTool', toolName: params.toolName, args: params.args },
+      25_000
+    );
   }
 
   private async handleScreenshot(params: ScreenshotParams): Promise<unknown> {
@@ -409,14 +446,14 @@ export class MessageRouter {
       if (params.snapshotId) {
         this.validateSnapshotId(tabId, params.snapshotId);
       }
-      return this.tabManager.sendToContentScript(tabId, {
+      return this.sendToContentScript(tabId, {
         action: 'scrollToElement',
         ref: params.ref,
       });
     }
 
     // Scroll the page by direction/amount
-    return this.tabManager.sendToContentScript(tabId, {
+    return this.sendToContentScript(tabId, {
       action: 'scrollPage',
       direction: params.direction ?? 'down',
       amount: params.amount,
@@ -426,11 +463,11 @@ export class MessageRouter {
   private async handleDropFiles(params: DropFilesParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.tabManager.sendToContentScript(tabId, {
-      action: 'dropFiles',
-      ref: params.ref,
-      files: params.files,
-    });
+    return this.sendToContentScript(
+      tabId,
+      { action: 'dropFiles', ref: params.ref, files: params.files },
+      25_000
+    );
   }
 
   private async handleDialogRequest(
