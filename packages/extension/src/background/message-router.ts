@@ -31,8 +31,10 @@ import type { DialogHandler } from './dialog-handler';
 /** Default timeout for waiting for tab load (30 seconds) */
 const TAB_LOAD_TIMEOUT_MS = 30_000;
 
-/** Default timeout for content script responses (fires before MCP server timeout to avoid retries) */
-const CONTENT_SCRIPT_TIMEOUT_MS = 10_000;
+/** Default timeout for content script responses.
+ *  Must be shorter than the MCP OPERATION_TIMEOUTS (10-15s) so the
+ *  extension returns a non-retryable error before the ws-client fires. */
+const CONTENT_SCRIPT_TIMEOUT_MS = 8_000;
 
 export class MessageRouter {
   private dialogHandler?: DialogHandler;
