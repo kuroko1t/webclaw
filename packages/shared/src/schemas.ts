@@ -35,6 +35,7 @@ export const pageSnapshotSchema = z.object({
   tabId: z.number().int().optional(),
   maxTokens: z.number().int().positive().optional(),
   focusRegion: z.string().optional(),
+  interactiveOnly: z.boolean().optional(),
 });
 
 export const clickSchema = z.object({

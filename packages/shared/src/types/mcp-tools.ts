@@ -13,6 +13,7 @@ export interface PageSnapshotParams {
   tabId?: number;
   maxTokens?: number;
   focusRegion?: string;
+  interactiveOnly?: boolean;
 }
 
 /** Parameters for click tool */

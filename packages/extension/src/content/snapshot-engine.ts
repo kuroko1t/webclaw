@@ -547,6 +547,44 @@ function formatNode(node: SnapshotNode, indent: number): string {
   return lines.join('\n');
 }
 
+/**
+ * Prune a snapshot tree to only include nodes that have a @ref (interactive)
+ * or are structural ancestors of such nodes. Returns null if the subtree
+ * contains no interactive elements.
+ */
+function pruneNonInteractive(node: SnapshotNode): SnapshotNode | null {
+  // Leaf node: keep only if it has a ref
+  if (!node.children) {
+    return node.ref ? { ...node } : null;
+  }
+
+  // Recurse into children, keeping only branches with interactive elements
+  const keptChildren: SnapshotNode[] = [];
+  for (const child of node.children) {
+    const pruned = pruneNonInteractive(child);
+    if (pruned) keptChildren.push(pruned);
+  }
+
+  // If this node itself is interactive, keep it (with pruned children)
+  if (node.ref) {
+    return {
+      ...node,
+      children: keptChildren.length > 0 ? keptChildren : undefined,
+    };
+  }
+
+  // Not interactive: only keep if it has interactive descendants
+  if (keptChildren.length === 0) return null;
+  // Single surviving child — unwrap unless this node carries a meaningful role
+  if (keptChildren.length === 1 && node.role === 'group') {
+    return keptChildren[0];
+  }
+  return {
+    ...node,
+    children: keptChildren,
+  };
+}
+
 /** Aliases for focusRegion parameter to landmark roles */
 const FOCUS_REGION_ALIASES: Record<string, string> = {
   header: 'banner',
@@ -597,6 +635,16 @@ export function takeSnapshot(
     // If no matches, fall back to full tree
   }
 
+  // Apply interactiveOnly filter: prune non-interactive subtrees
+  if (options.interactiveOnly) {
+    const pruned: SnapshotNode[] = [];
+    for (const child of filteredChildren) {
+      const p = pruneNonInteractive(child);
+      if (p) pruned.push(p);
+    }
+    filteredChildren = pruned;
+  }
+
   const pageNode: SnapshotNode = {
     role: 'page',
     name: document.title,
@@ -606,13 +654,39 @@ export function takeSnapshot(
   const optimizedPage = optimizeTree(pageNode);
   let text = formatNode(optimizedPage, 0);
 
-  // Token budget control
+  // Token budget control with smart truncation (85% head / 15% tail)
   const maxTokens = options.maxTokens ?? DEFAULT_SNAPSHOT_MAX_TOKENS;
   const estimatedTokens = Math.ceil(text.length / 4);
   if (estimatedTokens > maxTokens) {
-    // Truncate with note
     const maxChars = maxTokens * 4;
-    text = text.slice(0, maxChars) + '\n... (truncated)';
+    const headBudget = Math.floor(maxChars * 0.85);
+    const tailBudget = maxChars - headBudget;
+    const lines = text.split('\n');
+
+    // Build head portion (line-boundary)
+    let headEnd = 0;
+    let headLen = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const lineLen = lines[i].length + 1; // +1 for newline
+      if (headLen + lineLen > headBudget) break;
+      headLen += lineLen;
+      headEnd = i + 1;
+    }
+
+    // Build tail portion (line-boundary, from end)
+    let tailStart = lines.length;
+    let tailLen = 0;
+    for (let i = lines.length - 1; i >= headEnd; i--) {
+      const lineLen = lines[i].length + 1;
+      if (tailLen + lineLen > tailBudget) break;
+      tailLen += lineLen;
+      tailStart = i;
+    }
+
+    const headPart = lines.slice(0, headEnd).join('\n');
+    const tailPart = lines.slice(tailStart).join('\n');
+    const omitted = tailStart - headEnd;
+    text = headPart + `\n... (${omitted} lines omitted)\n` + tailPart;
   }
 
   return {

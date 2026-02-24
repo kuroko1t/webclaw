@@ -199,6 +199,7 @@ export class MessageRouter {
       action: 'snapshot',
       maxTokens: params.maxTokens,
       focusRegion: params.focusRegion,
+      interactiveOnly: params.interactiveOnly,
     });
     if (result && typeof result === 'object' && 'snapshotId' in (result as Record<string, unknown>)) {
       this.tabManager.setSnapshotId(tabId, (result as { snapshotId: string }).snapshotId);

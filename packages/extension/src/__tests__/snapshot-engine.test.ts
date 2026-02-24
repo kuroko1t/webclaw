@@ -126,9 +126,12 @@ describe('snapshot-engine', () => {
       }
       document.body.innerHTML = html;
       const result = takeSnapshot({ maxTokens: 100 });
-      // 100 tokens * 4 chars = 400 chars max
-      expect(result.text.length).toBeLessThanOrEqual(420); // some slack for truncation note
-      expect(result.text).toContain('truncated');
+      // Smart truncation: 85% head + 15% tail + omission note
+      // Total output should be within budget + overhead for the omission marker
+      expect(result.text.length).toBeLessThanOrEqual(500);
+      expect(result.text).toContain('lines omitted');
+      // Verify tail is preserved (last button should be visible)
+      expect(result.text).toContain('Button number 199');
     });
   });
 

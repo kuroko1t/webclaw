@@ -114,9 +114,10 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
       maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: 4000)'),
       focusRegion: z.string().optional().describe('Focus on a specific landmark region (e.g., "main", "nav", "header", "footer", "sidebar", "complementary", "banner", "contentinfo")'),
+      interactiveOnly: z.boolean().optional().describe('Only include interactive elements (buttons, links, inputs) and their structural ancestors. Useful for large pages where you need to find clickable elements without token overflow.'),
     },
-    async ({ tabId, maxTokens, focusRegion }) => {
-      const response = await requestWithSessionTab('snapshot', { maxTokens, focusRegion }, tabId);
+    async ({ tabId, maxTokens, focusRegion, interactiveOnly }) => {
+      const response = await requestWithSessionTab('snapshot', { maxTokens, focusRegion, interactiveOnly }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
