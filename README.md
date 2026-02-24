@@ -177,10 +177,10 @@ flowchart LR
 
 Every interactive element gets a stable `@ref` label. The AI reads the tree, picks the right `@ref`, and calls `click` / `type_text` / `select_option`.
 
-## MCP Tools (19)
+## MCP Tools (20)
 
 <details>
-<summary><b>Page Interaction</b> — navigate, snapshot, click, hover, type, select, drop files, screenshot</summary>
+<summary><b>Page Interaction</b> — navigate, snapshot, click, hover, type, select, drop files, screenshot, dialog</summary>
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
@@ -192,6 +192,7 @@ Every interactive element gets a stable `@ref` label. The AI reads the tree, pic
 | `select_option` | `ref`, `value`, `snapshotId`, `tabId?` | Select a dropdown option by `@ref` |
 | `drop_files` | `ref`, `snapshotId`, `files`, `tabId?` | Drop files onto an element (e.g., upload images to GitHub issues) |
 | `screenshot` | `tabId?` | Capture the visible area of the active tab |
+| `handle_dialog` | `action`, `promptText?`, `tabId?` | Handle a native browser dialog (alert/confirm/prompt) |
 
 </details>
 
@@ -246,7 +247,7 @@ pnpm dev          # Watch mode
 ```
 packages/
   shared/          Type definitions, Zod schemas, utilities
-  mcp-server/      MCP server with 19 tools, WebSocket bridge
+  mcp-server/      MCP server with 20 tools, WebSocket bridge
   extension/       Chrome MV3 extension (service worker, content scripts, side panel)
 examples/
   webmcp-demo-site/  WebMCP-enabled Todo app for testing native tool discovery
