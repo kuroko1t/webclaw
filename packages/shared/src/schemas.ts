@@ -128,3 +128,9 @@ export const dropFilesSchema = z.object({
   files: z.array(dropFileEntrySchema).min(1),
   tabId: z.number().int().optional(),
 });
+
+export const handleDialogSchema = z.object({
+  action: z.enum(['accept', 'dismiss']),
+  promptText: z.string().optional(),
+  tabId: z.number().int().optional(),
+});

@@ -51,7 +51,7 @@ describe('MCP Server tool registration', () => {
     expect(server).toBeDefined();
   });
 
-  it('registers all 19 expected tools', () => {
+  it('registers all 20 expected tools', () => {
     const { z } = require('zod');
     const server = new McpServer({ name: 'test', version: '0.0.1' });
 
@@ -75,6 +75,7 @@ describe('MCP Server tool registration', () => {
       'wait_for_navigation',
       'scroll_page',
       'drop_files',
+      'handle_dialog',
     ];
 
     for (const name of toolNames) {
@@ -88,8 +89,8 @@ describe('MCP Server tool registration', () => {
       );
     }
 
-    // If we get here without throwing, all 19 registered successfully
-    expect(toolNames).toHaveLength(19);
+    // If we get here without throwing, all 20 registered successfully
+    expect(toolNames).toHaveLength(20);
   });
 });
 

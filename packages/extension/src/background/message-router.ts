@@ -22,15 +22,24 @@ import type {
   WaitForNavigationParams,
   ScrollPageParams,
   DropFilesParams,
+  HandleDialogParams,
 } from 'webclaw-shared';
 import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
+import type { DialogHandler } from './dialog-handler';
 
 /** Default timeout for waiting for tab load (30 seconds) */
 const TAB_LOAD_TIMEOUT_MS = 30_000;
 
 export class MessageRouter {
+  private dialogHandler?: DialogHandler;
+
   constructor(private tabManager: TabManager) {}
+
+  /** Set the dialog handler (injected after construction to avoid circular deps) */
+  setDialogHandler(handler: DialogHandler): void {
+    this.dialogHandler = handler;
+  }
 
   /** Handle a bridge request and return a response */
   async handleBridgeRequest(request: BridgeRequest): Promise<BridgeMessage> {
@@ -102,6 +111,9 @@ export class MessageRouter {
           break;
         case 'dropFiles':
           result = await this.handleDropFiles(payload as DropFilesParams);
+          break;
+        case 'handleDialog':
+          result = await this.handleDialogRequest(payload as HandleDialogParams);
           break;
         case 'ping':
           result = { pong: true, timestamp: Date.now() };
@@ -419,6 +431,16 @@ export class MessageRouter {
       ref: params.ref,
       files: params.files,
     });
+  }
+
+  private async handleDialogRequest(
+    params: HandleDialogParams
+  ): Promise<unknown> {
+    if (!this.dialogHandler) {
+      throw new Error('DialogHandler not initialized');
+    }
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    return this.dialogHandler.handleDialog(tabId, params);
   }
 
   /** Validate that the snapshot ID matches the current tab snapshot */

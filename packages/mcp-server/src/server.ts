@@ -1,7 +1,7 @@
 /**
  * WebClaw MCP Server.
  *
- * Exposes 19 browser interaction tools via MCP protocol (stdio transport).
+ * Exposes 20 browser interaction tools via MCP protocol (stdio transport).
  * Communicates with the Chrome Extension via WebSocket.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -534,6 +534,44 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       const fileNames = files.map((f) => f.name).join(', ');
       return {
         content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}: ${fileNames}` }],
+      };
+    }
+  );
+
+  // --- Tool: handle_dialog ---
+  server.tool(
+    'handle_dialog',
+    'Handle a native browser dialog (alert/confirm/prompt). Use this when a dialog is blocking page interaction.',
+    {
+      action: z.enum(['accept', 'dismiss']).describe('Whether to accept or dismiss the dialog'),
+      promptText: z.string().optional().describe('Text to enter in a prompt() dialog before accepting'),
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+    },
+    async ({ action, promptText, tabId }) => {
+      const response = await requestWithSessionTab('handleDialog', { action, promptText }, tabId);
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as {
+        dialogType?: string;
+        message?: string;
+        defaultPrompt?: string;
+        handled: boolean;
+      };
+      if (!result.handled) {
+        return {
+          content: [{ type: 'text', text: 'No dialog was found on this tab.' }],
+        };
+      }
+      let text = `Handled ${result.dialogType} dialog: ${action}`;
+      if (result.message) {
+        text += `\nMessage: ${result.message}`;
+      }
+      if (result.defaultPrompt) {
+        text += `\nDefault prompt: ${result.defaultPrompt}`;
+      }
+      return {
+        content: [{ type: 'text', text }],
       };
     }
   );

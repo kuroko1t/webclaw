@@ -135,3 +135,18 @@ export interface DropFilesParams {
   files: DropFileEntry[];
   tabId?: number;
 }
+
+/** Parameters for handle_dialog tool */
+export interface HandleDialogParams {
+  action: 'accept' | 'dismiss';
+  promptText?: string;
+  tabId?: number;
+}
+
+/** Result from handle_dialog tool */
+export interface HandleDialogResult {
+  dialogType?: 'alert' | 'confirm' | 'prompt' | 'beforeunload';
+  message?: string;
+  defaultPrompt?: string;
+  handled: boolean;
+}

@@ -9,7 +9,8 @@
     "scripting",
     "sidePanel",
     "storage",
-    "alarms"
+    "alarms",
+    "debugger"
   ],
   "host_permissions": ["<all_urls>"],
   "background": {

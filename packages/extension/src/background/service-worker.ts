@@ -13,10 +13,13 @@ import {
 import { WebSocketBridge } from './ws-bridge';
 import { TabManager } from './tab-manager';
 import { MessageRouter } from './message-router';
+import { DialogHandler } from './dialog-handler';
 
 // --- State ---
 const tabManager = new TabManager();
 const messageRouter = new MessageRouter(tabManager);
+const dialogHandler = new DialogHandler();
+messageRouter.setDialogHandler(dialogHandler);
 
 const wsBridges: WebSocketBridge[] = [];
 for (let i = 0; i < WEBSOCKET_PORT_RANGE_SIZE; i++) {
@@ -66,6 +69,10 @@ function broadcastToSidePanel(message: unknown): void {
 
 // --- Tab Events ---
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'loading' && changeInfo.url) {
+    // Clear stale dialog state on navigation
+    dialogHandler.onTabNavigated(tabId);
+  }
   if (changeInfo.status === 'complete') {
     tabManager.onTabReady(tabId);
   }
@@ -73,6 +80,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabManager.onTabRemoved(tabId);
+  dialogHandler.onTabRemoved(tabId);
 });
 
 // --- Side Panel Setup ---

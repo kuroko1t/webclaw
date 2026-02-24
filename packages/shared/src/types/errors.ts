@@ -12,7 +12,8 @@ export type ErrorCode =
   | 'UNKNOWN_METHOD'
   | 'HANDLER_ERROR'
   | 'CONTENT_SCRIPT_ERROR'
-  | 'SCREENSHOT_FAILED';
+  | 'SCREENSHOT_FAILED'
+  | 'DIALOG_NOT_FOUND';
 
 /** Map of error codes to human-readable recovery suggestions */
 export const ERROR_RECOVERY: Record<ErrorCode, string> = {
@@ -29,9 +30,11 @@ export const ERROR_RECOVERY: Record<ErrorCode, string> = {
   UNKNOWN_METHOD:
     'The requested method is not supported. Check the tool name and try again.',
   HANDLER_ERROR:
-    'An internal error occurred while processing the request. Try again or take a new snapshot.',
+    'An internal error occurred while processing the request. Try again or take a new snapshot. If a browser dialog is blocking, use handle_dialog to dismiss it first.',
   CONTENT_SCRIPT_ERROR:
     'The content script encountered an error. Try reloading the page and taking a new snapshot.',
   SCREENSHOT_FAILED:
     'Failed to capture a screenshot. Ensure the tab is visible and not a chrome:// page.',
+  DIALOG_NOT_FOUND:
+    'No JavaScript dialog (alert/confirm/prompt) was detected on this tab. The dialog may have already been dismissed.',
 };

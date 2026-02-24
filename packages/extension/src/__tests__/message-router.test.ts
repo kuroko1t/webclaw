@@ -45,6 +45,7 @@ vi.stubGlobal('chrome', {
 
 import { MessageRouter } from '../background/message-router';
 import type { TabManager } from '../background/tab-manager';
+import type { DialogHandler } from '../background/dialog-handler';
 
 function createMockTabManager(): TabManager {
   return {
@@ -58,14 +59,24 @@ function createMockTabManager(): TabManager {
   } as unknown as TabManager;
 }
 
+function createMockDialogHandler(): DialogHandler {
+  return {
+    handleDialog: vi.fn().mockResolvedValue({ handled: false }),
+    onTabRemoved: vi.fn(),
+  } as unknown as DialogHandler;
+}
+
 describe('MessageRouter', () => {
   let router: MessageRouter;
   let mockTabManager: TabManager;
+  let mockDialogHandler: DialogHandler;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockTabManager = createMockTabManager();
+    mockDialogHandler = createMockDialogHandler();
     router = new MessageRouter(mockTabManager);
+    router.setDialogHandler(mockDialogHandler);
   });
 
   describe('handleBridgeRequest', () => {
@@ -426,6 +437,47 @@ describe('MessageRouter', () => {
       expect(mockTabManager.sendToContentScript).toHaveBeenCalledWith(1, {
         action: 'scrollToElement',
         ref: '@e5',
+      });
+    });
+
+    it('routes handleDialog to dialog handler', async () => {
+      (mockDialogHandler.handleDialog as ReturnType<typeof vi.fn>).mockResolvedValue({
+        dialogType: 'alert',
+        message: 'Hello!',
+        handled: true,
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-dialog',
+        type: 'request',
+        method: 'handleDialog',
+        payload: { action: 'accept' },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockDialogHandler.handleDialog).toHaveBeenCalledWith(1, { action: 'accept' });
+      expect((result.payload as { handled: boolean }).handled).toBe(true);
+    });
+
+    it('routes handleDialog with promptText', async () => {
+      (mockDialogHandler.handleDialog as ReturnType<typeof vi.fn>).mockResolvedValue({
+        dialogType: 'prompt',
+        message: 'Enter name:',
+        handled: true,
+      });
+
+      await router.handleBridgeRequest({
+        id: 'req-dialog-prompt',
+        type: 'request',
+        method: 'handleDialog',
+        payload: { action: 'accept', promptText: 'John' },
+        timestamp: Date.now(),
+      });
+
+      expect(mockDialogHandler.handleDialog).toHaveBeenCalledWith(1, {
+        action: 'accept',
+        promptText: 'John',
       });
     });
 

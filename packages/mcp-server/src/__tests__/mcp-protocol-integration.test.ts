@@ -72,6 +72,7 @@ const EXPECTED_TOOLS = [
   'wait_for_navigation',
   'scroll_page',
   'drop_files',
+  'handle_dialog',
 ];
 
 describe('MCP Protocol integration (in-process)', () => {
@@ -103,9 +104,9 @@ describe('MCP Protocol integration (in-process)', () => {
   });
 
   // --- tools/list ---
-  it('lists all 19 tools', async () => {
+  it('lists all 20 tools', async () => {
     const result = await mcpClient.listTools();
-    expect(result.tools).toHaveLength(19);
+    expect(result.tools).toHaveLength(20);
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([...EXPECTED_TOOLS].sort());
   });
