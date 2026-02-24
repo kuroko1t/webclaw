@@ -159,7 +159,7 @@ describe('Complex DOM E2E', () => {
     });
 
     // With only 100 tokens (400 chars), the snapshot should be truncated
-    expect(snapshot.text).toContain('(truncated)');
+    expect(snapshot.text).toContain('lines omitted');
   }, 30_000);
 
   it('should typeText into a contenteditable element', async () => {

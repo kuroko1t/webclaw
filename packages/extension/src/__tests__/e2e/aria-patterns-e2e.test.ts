@@ -733,7 +733,7 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
       action: 'snapshot', maxTokens: 200,
     });
 
-    expect(snap.text).toContain('truncated');
+    expect(snap.text).toContain('lines omitted');
     // Early @refs should still be valid
     const firstRef = snap.text.match(/@e\d+/)?.[0];
     if (firstRef) {
