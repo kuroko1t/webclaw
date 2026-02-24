@@ -28,12 +28,23 @@ jobs:
           cd packages/extension/dist
           zip -r ../../../webclaw-extension-${GITHUB_REF_NAME}.zip .
 
+      # リリースノートをコミットログから生成
+      - name: Generate release notes
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Changes" > release-notes.md
+            git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" >> release-notes.md
+          else
+            echo "Initial release" > release-notes.md
+          fi
+
       # GitHub Release作成 + zip添付
       - name: Create GitHub Release
         run: |
           gh release create "$GITHUB_REF_NAME" \
             webclaw-extension-${GITHUB_REF_NAME}.zip \
-            --generate-notes
+            --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
