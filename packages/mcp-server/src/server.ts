@@ -235,16 +235,38 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
+      const MAX_LIST_TOOLS_OUTPUT_CHARS = 8000;
       const result = response.payload as { tools: Array<{ name: string; description: string; source: string; inputSchema: unknown }> };
-      const toolList = result.tools
-        .map((t) => `- ${t.name} [${t.source}]: ${t.description}`)
-        .join('\n');
+
+      if (result.tools.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'No WebMCP tools found on this page.' }],
+        };
+      }
+
+      // Native tools first, then synthesized
+      const sorted = result.tools.sort((a, b) => {
+        if (a.source === 'webmcp-native' && b.source !== 'webmcp-native') return -1;
+        if (a.source !== 'webmcp-native' && b.source === 'webmcp-native') return 1;
+        return 0;
+      });
+
+      let toolList = '';
+      let shownCount = 0;
+      for (const t of sorted) {
+        const line = `- ${t.name} [${t.source}]: ${t.description}\n`;
+        if (toolList.length + line.length > MAX_LIST_TOOLS_OUTPUT_CHARS && shownCount > 0) {
+          toolList += `\n... and ${sorted.length - shownCount} more tools (output truncated)`;
+          break;
+        }
+        toolList += line;
+        shownCount++;
+      }
+
       return {
         content: [{
           type: 'text',
-          text: result.tools.length > 0
-            ? `Found ${result.tools.length} tools:\n${toolList}`
-            : 'No WebMCP tools found on this page.',
+          text: `Found ${result.tools.length} tools:\n${toolList}`,
         }],
       };
     }

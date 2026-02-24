@@ -162,12 +162,15 @@ async function discoverNativeTools(tabId: number): Promise<WebMCPTool[]> {
 
 // --- Auto-Synthesis ---
 
+const MAX_SYNTHESIZED_TOOLS = 50;
+
 function synthesizeTools(tabId: number): WebMCPTool[] {
   const tools: WebMCPTool[] = [];
 
   // Synthesize from forms
   const forms = document.querySelectorAll('form');
   for (const form of forms) {
+    if (tools.length >= MAX_SYNTHESIZED_TOOLS) break;
     const tool = synthesizeFormTool(form, tabId);
     if (tool) tools.push(tool);
   }
@@ -177,6 +180,7 @@ function synthesizeTools(tabId: number): WebMCPTool[] {
     'button:not(form button), [role="button"]:not(form [role="button"])'
   );
   for (const button of buttons) {
+    if (tools.length >= MAX_SYNTHESIZED_TOOLS) break;
     const tool = synthesizeButtonTool(button as HTMLElement, tabId);
     if (tool) tools.push(tool);
   }
