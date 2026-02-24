@@ -57,15 +57,21 @@ export class DialogHandler {
     // Attach debugger (stays attached to catch future events)
     await this.ensureAttached(tabId);
 
-    // Wait briefly for a dialog event to arrive
+    // Try direct CDP command first — handles pre-existing dialogs immediately
+    // without waiting for an event that won't re-fire.
+    const directResult = await this.tryHandleDirectly(tabId, params);
+    if (directResult.handled) {
+      return directResult;
+    }
+
+    // No existing dialog — wait briefly for one to appear
     const dialog = await this.waitForDialog(tabId, DIALOG_DETECT_TIMEOUT_MS);
 
     if (dialog) {
       return this.respondToDialog(tabId, dialog, params);
     }
 
-    // No event received — try direct CDP command as fallback
-    return this.tryHandleDirectly(tabId, params);
+    return { handled: false };
   }
 
   /** Clear stale dialog state when a tab navigates */

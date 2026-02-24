@@ -40,6 +40,8 @@ function simulateDialogEvent(tabId: number, type: string, message: string, defau
       { type, message, defaultPrompt, url: 'https://example.com' }
     );
   }
+  // Dialog is now open — CDP handling should succeed
+  mockDebuggerSendCommand.mockResolvedValue(undefined);
 }
 
 /** Simulate debugger being externally detached */
@@ -59,7 +61,12 @@ describe('DialogHandler', () => {
     debuggerOnDetachListeners.length = 0;
     mockDebuggerAttach.mockResolvedValue(undefined);
     mockDebuggerDetach.mockResolvedValue(undefined);
-    mockDebuggerSendCommand.mockResolvedValue(undefined);
+    // Default: no dialog is showing (matches real Chrome behavior)
+    mockDebuggerSendCommand.mockImplementation(async (_target: unknown, method: string) => {
+      if (method === 'Page.handleJavaScriptDialog') {
+        throw new Error('No dialog is showing');
+      }
+    });
     handler = new DialogHandler();
   });
 
@@ -154,7 +161,8 @@ describe('DialogHandler', () => {
   });
 
   it('handles dialog already open via direct CDP command', async () => {
-    // No event will fire, but the fallback sendCommand succeeds
+    // Dialog already showing — CDP command succeeds directly
+    mockDebuggerSendCommand.mockResolvedValue(undefined);
     const promise = handler.handleDialog(1, { action: 'accept' });
     await vi.advanceTimersByTimeAsync(4000);
     const result = await promise;
