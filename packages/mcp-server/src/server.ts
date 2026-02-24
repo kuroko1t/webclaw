@@ -570,7 +570,15 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
     },
     async ({ action, promptText, tabId }) => {
-      const response = await requestWithSessionTab('handleDialog', { action, promptText }, tabId);
+      // Don't auto-create a session tab for handle_dialog — the dialog
+      // lives on an existing tab.  Use: user-specified > session > omit
+      // (extension falls back to the active tab when tabId is undefined).
+      const resolvedTabId = tabId ?? sessionTabId ?? undefined;
+      const response = await wsClient.requestWithRetry('handleDialog', {
+        action,
+        promptText,
+        tabId: resolvedTabId,
+      });
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
