@@ -73,36 +73,51 @@ export async function launchBrowserWithExtension(): Promise<Browser> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const userDataDir = mkdtempSync(resolve(tmpdir(), 'webclaw-e2e-'));
 
-    const browser = await puppeteer.launch({
-      headless: false,
-      executablePath: findChrome(),
-      ignoreAllDefaultArgs: true,
-      args: [
-        '--headless=new',
-        `--disable-extensions-except=${DIST_PATH}`,
-        `--load-extension=${DIST_PATH}`,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--remote-debugging-port=0',
-        `--user-data-dir=${userDataDir}`,
-        // Re-add important Puppeteer defaults for stable browser operation
-        '--no-first-run',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-hang-monitor',
-        '--disable-ipc-flooding-protection',
-        '--disable-popup-blocking',
-        '--disable-prompt-on-repost',
-        '--disable-sync',
-        '--enable-features=NetworkService,NetworkServiceInProcess',
-        '--password-store=basic',
-        '--use-mock-keychain',
-        '--metrics-recording-only',
-      ],
-    });
+    let browser: Browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: false,
+        executablePath: findChrome(),
+        ignoreAllDefaultArgs: true,
+        args: [
+          '--headless=new',
+          `--disable-extensions-except=${DIST_PATH}`,
+          `--load-extension=${DIST_PATH}`,
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--remote-debugging-port=0',
+          `--user-data-dir=${userDataDir}`,
+          // Re-add important Puppeteer defaults for stable browser operation
+          '--no-first-run',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-hang-monitor',
+          '--disable-ipc-flooding-protection',
+          '--disable-popup-blocking',
+          '--disable-prompt-on-repost',
+          '--disable-sync',
+          '--enable-features=NetworkService,NetworkServiceInProcess',
+          '--password-store=basic',
+          '--use-mock-keychain',
+          '--metrics-recording-only',
+          // Reduce memory footprint for CI environments
+          '--disable-breakpad',
+          '--disable-crash-reporter',
+          '--disable-field-trial-config',
+          '--disable-features=Translate,BackForwardCache,MediaRouter,OptimizationHints',
+        ],
+      });
+    } catch {
+      if (attempt === maxAttempts) {
+        throw new Error(
+          `Chrome failed to launch after ${maxAttempts} attempts`,
+        );
+      }
+      continue;
+    }
 
     // Verify the service worker loads before returning
     try {
