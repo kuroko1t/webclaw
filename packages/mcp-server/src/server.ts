@@ -278,7 +278,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
     'Invoke a WebMCP tool declared by the current page',
     {
       toolName: z.string().min(1).describe('Name of the WebMCP tool to invoke'),
-      args: z.record(z.unknown()).describe('Arguments to pass to the tool'),
+      args: z.record(z.unknown()).optional().describe('Arguments to pass to the tool'),
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
     async ({ toolName, args, tabId }) => {
