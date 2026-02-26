@@ -723,32 +723,11 @@ describe('ARIA Patterns & Advanced Interactions E2E', () => {
     expect(result).toContain('Confirmed: Testing modal');
   }, 30_000);
 
-  // --- Token Truncation ---
+  // --- Large DOM ---
 
-  it('should truncate snapshot with maxTokens and preserve valid @refs', async () => {
+  it('should include all elements in large DOM', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/truncation`);
 
-    // Take snapshot with very small token limit
-    const snap = await sendToContentScript(browser, page, {
-      action: 'snapshot', maxTokens: 200,
-    });
-
-    expect(snap.text).toContain('lines omitted');
-    // Early @refs should still be valid
-    const firstRef = snap.text.match(/@e\d+/)?.[0];
-    if (firstRef) {
-      // The ref should still resolve to an element
-      const result = await sendToContentScript(browser, page, {
-        action: 'click', ref: firstRef,
-      });
-      expect(result.success).toBe(true);
-    }
-  }, 30_000);
-
-  it('should include all elements with normal token limit', async () => {
-    await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/truncation`);
-
-    // Default token limit should include many elements
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
     expect(snap.text).toContain('Button 1');
     // Should have many @refs

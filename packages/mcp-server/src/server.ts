@@ -112,12 +112,11 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
     'Get a compact accessibility tree snapshot of the current page with @ref labels for interactive elements',
     {
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
-      maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: no limit). Set to limit output size for large pages.'),
       focusRegion: z.string().optional().describe('Focus on a specific landmark region (e.g., "main", "nav", "header", "footer", "sidebar", "complementary", "banner", "contentinfo")'),
       interactiveOnly: z.boolean().optional().describe('Only include interactive elements (buttons, links, inputs) and their structural ancestors. Useful for large pages where you need to find clickable elements without token overflow.'),
     },
-    async ({ tabId, maxTokens, focusRegion, interactiveOnly }) => {
-      const response = await requestWithSessionTab('snapshot', { maxTokens, focusRegion, interactiveOnly }, tabId);
+    async ({ tabId, focusRegion, interactiveOnly }) => {
+      const response = await requestWithSessionTab('snapshot', { focusRegion, interactiveOnly }, tabId);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
@@ -236,16 +235,17 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
         return formatErrorResponse(response.payload);
       }
       const MAX_LIST_TOOLS_OUTPUT_CHARS = 8000;
-      const result = response.payload as { tools: Array<{ name: string; description: string; source: string; inputSchema: unknown }> };
+      const result = response.payload as { tools?: Array<{ name: string; description: string; source: string; inputSchema: unknown }> };
+      const tools = result.tools ?? [];
 
-      if (result.tools.length === 0) {
+      if (tools.length === 0) {
         return {
           content: [{ type: 'text', text: 'No WebMCP tools found on this page.' }],
         };
       }
 
       // Native tools first, then synthesized
-      const sorted = result.tools.sort((a, b) => {
+      const sorted = tools.sort((a, b) => {
         if (a.source === 'webmcp-native' && b.source !== 'webmcp-native') return -1;
         if (a.source !== 'webmcp-native' && b.source === 'webmcp-native') return 1;
         return 0;
@@ -266,7 +266,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       return {
         content: [{
           type: 'text',
-          text: `Found ${result.tools.length} tools:\n${toolList}`,
+          text: `Found ${tools.length} tools:\n${toolList}`,
         }],
       };
     }

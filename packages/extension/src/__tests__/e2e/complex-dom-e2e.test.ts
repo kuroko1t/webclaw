@@ -151,17 +151,6 @@ describe('Complex DOM E2E', () => {
     expect(snapshot.text).toContain('Item 0');
   }, 30_000);
 
-  it('should truncate large snapshots with maxTokens', async () => {
-    await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/large`);
-    const snapshot = await sendToContentScript(browser, page, {
-      action: 'snapshot',
-      maxTokens: 100,
-    });
-
-    // With only 100 tokens (400 chars), the snapshot should be truncated
-    expect(snapshot.text).toContain('lines omitted');
-  }, 30_000);
-
   it('should typeText into a contenteditable element', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/`);
     const snapshot = await sendToContentScript(browser, page, { action: 'snapshot' });

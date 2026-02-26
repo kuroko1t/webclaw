@@ -5,7 +5,7 @@
  * for interactive elements. Designed for minimal token usage while preserving
  * structural context for LLM-based navigation.
  */
-import { createRefCounter, DEFAULT_SNAPSHOT_MAX_TOKENS } from 'webclaw-shared';
+import { createRefCounter } from 'webclaw-shared';
 import type { SnapshotNode, SnapshotOptions } from 'webclaw-shared';
 
 /** Map of @ref → DOM element for the current snapshot */
@@ -657,42 +657,7 @@ export function takeSnapshot(
   };
 
   const optimizedPage = optimizeTree(pageNode);
-  let text = formatNode(optimizedPage, 0);
-
-  // Token budget control with smart truncation (85% head / 15% tail)
-  const maxTokens = options.maxTokens ?? DEFAULT_SNAPSHOT_MAX_TOKENS;
-  const estimatedTokens = Math.ceil(text.length / 4);
-  if (maxTokens > 0 && estimatedTokens > maxTokens) {
-    const maxChars = maxTokens * 4;
-    const headBudget = Math.floor(maxChars * 0.85);
-    const tailBudget = maxChars - headBudget;
-    const lines = text.split('\n');
-
-    // Build head portion (line-boundary)
-    let headEnd = 0;
-    let headLen = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const lineLen = lines[i].length + 1; // +1 for newline
-      if (headLen + lineLen > headBudget) break;
-      headLen += lineLen;
-      headEnd = i + 1;
-    }
-
-    // Build tail portion (line-boundary, from end)
-    let tailStart = lines.length;
-    let tailLen = 0;
-    for (let i = lines.length - 1; i >= headEnd; i--) {
-      const lineLen = lines[i].length + 1;
-      if (tailLen + lineLen > tailBudget) break;
-      tailLen += lineLen;
-      tailStart = i;
-    }
-
-    const headPart = lines.slice(0, headEnd).join('\n');
-    const tailPart = lines.slice(tailStart).join('\n');
-    const omitted = tailStart - headEnd;
-    text = headPart + `\n... (${omitted} lines omitted)\n` + tailPart;
-  }
+  const text = formatNode(optimizedPage, 0);
 
   return {
     text,

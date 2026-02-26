@@ -248,7 +248,6 @@ export class MessageRouter {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     const result = await this.sendToContentScript(tabId, {
       action: 'snapshot',
-      maxTokens: params.maxTokens,
       focusRegion: params.focusRegion,
       interactiveOnly: params.interactiveOnly,
     });

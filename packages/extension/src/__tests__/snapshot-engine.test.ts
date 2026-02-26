@@ -118,21 +118,6 @@ describe('snapshot-engine', () => {
       expect(result.text).toContain('heading[2]');
     });
 
-    it('respects maxTokens budget', () => {
-      // Create a large DOM
-      let html = '';
-      for (let i = 0; i < 200; i++) {
-        html += `<button>Button number ${i}</button>`;
-      }
-      document.body.innerHTML = html;
-      const result = takeSnapshot({ maxTokens: 100 });
-      // Smart truncation: 85% head + 15% tail + omission note
-      // Total output should be within budget + overhead for the omission marker
-      expect(result.text.length).toBeLessThanOrEqual(500);
-      expect(result.text).toContain('lines omitted');
-      // Verify tail is preserved (last button should be visible)
-      expect(result.text).toContain('Button number 199');
-    });
   });
 
   describe('resolveRef', () => {
@@ -771,6 +756,145 @@ describe('snapshot-engine', () => {
       `;
       const result = takeSnapshot();
       expect(result.text).not.toContain('Invisible');
+    });
+  });
+
+  describe('interactiveOnly filter', () => {
+    it('keeps only interactive elements', () => {
+      document.body.innerHTML = `
+        <p>Static text</p>
+        <button>Click me</button>
+        <p>More text</p>
+        <a href="/link">Link</a>
+      `;
+      const result = takeSnapshot({ interactiveOnly: true });
+      expect(result.text).toContain('Click me');
+      expect(result.text).toContain('Link');
+      expect(result.text).not.toContain('Static text');
+      expect(result.text).not.toContain('More text');
+    });
+
+    it('preserves structural ancestors (nav, main)', () => {
+      document.body.innerHTML = `
+        <nav><a href="/">Home</a></nav>
+        <main><button>Action</button></main>
+      `;
+      const result = takeSnapshot({ interactiveOnly: true });
+      expect(result.text).toContain('nav');
+      expect(result.text).toContain('main');
+      expect(result.text).toContain('Home');
+      expect(result.text).toContain('Action');
+    });
+
+    it('still returns page node when no interactive elements exist', () => {
+      document.body.innerHTML = '<p>Just text</p>';
+      const result = takeSnapshot({ interactiveOnly: true });
+      expect(result.text).toContain('[page');
+    });
+
+    it('assigns @ref correctly to interactive elements', () => {
+      document.body.innerHTML = `
+        <p>Text</p>
+        <button>First</button>
+        <p>More text</p>
+        <button>Second</button>
+      `;
+      const result = takeSnapshot({ interactiveOnly: true });
+      expect(result.text).toContain('@e1');
+      expect(result.text).toContain('@e2');
+    });
+  });
+
+  describe('focusRegion filter', () => {
+    it('extracts main landmark', () => {
+      document.body.innerHTML = `
+        <nav><a href="/">Home</a></nav>
+        <main><button>Main Action</button></main>
+        <footer><a href="/terms">Terms</a></footer>
+      `;
+      const result = takeSnapshot({ focusRegion: 'main' });
+      expect(result.text).toContain('Main Action');
+      expect(result.text).not.toContain('Home');
+      expect(result.text).not.toContain('Terms');
+    });
+
+    it('extracts nav landmark', () => {
+      document.body.innerHTML = `
+        <nav><a href="/">Home</a><a href="/about">About</a></nav>
+        <main><button>Action</button></main>
+      `;
+      const result = takeSnapshot({ focusRegion: 'nav' });
+      expect(result.text).toContain('Home');
+      expect(result.text).toContain('About');
+      expect(result.text).not.toContain('Action');
+    });
+
+    it('resolves header alias to banner', () => {
+      document.body.innerHTML = `
+        <header><a href="/">Logo</a></header>
+        <main><button>Action</button></main>
+      `;
+      const result = takeSnapshot({ focusRegion: 'header' });
+      expect(result.text).toContain('Logo');
+      expect(result.text).not.toContain('Action');
+    });
+
+    it('resolves footer alias to contentinfo', () => {
+      document.body.innerHTML = `
+        <main><button>Action</button></main>
+        <footer><a href="/terms">Terms</a></footer>
+      `;
+      const result = takeSnapshot({ focusRegion: 'footer' });
+      expect(result.text).toContain('Terms');
+      expect(result.text).not.toContain('Action');
+    });
+
+    it('resolves sidebar alias to complementary', () => {
+      document.body.innerHTML = `
+        <main><button>Action</button></main>
+        <aside><a href="/help">Help</a></aside>
+      `;
+      const result = takeSnapshot({ focusRegion: 'sidebar' });
+      expect(result.text).toContain('Help');
+      expect(result.text).not.toContain('Action');
+    });
+
+    it('falls back to full tree when region not found', () => {
+      document.body.innerHTML = `
+        <div><button>Action</button></div>
+      `;
+      const result = takeSnapshot({ focusRegion: 'nav' });
+      expect(result.text).toContain('Action');
+    });
+  });
+
+  describe('filter combinations', () => {
+    it('focusRegion + interactiveOnly: only interactive elements in region', () => {
+      document.body.innerHTML = `
+        <nav><a href="/">Home</a><p>Nav text</p></nav>
+        <main>
+          <p>Main text</p>
+          <button>Main Action</button>
+        </main>
+      `;
+      const result = takeSnapshot({ focusRegion: 'main', interactiveOnly: true });
+      expect(result.text).toContain('Main Action');
+      expect(result.text).not.toContain('Main text');
+      expect(result.text).not.toContain('Home');
+      expect(result.text).not.toContain('Nav text');
+    });
+
+    it('both filters combined', () => {
+      document.body.innerHTML = `
+        <nav><a href="/">Home</a></nav>
+        <main>
+          <p>Text</p>
+          <button>Action</button>
+        </main>
+      `;
+      const result = takeSnapshot({ focusRegion: 'main', interactiveOnly: true });
+      expect(result.text).toContain('Action');
+      expect(result.text).not.toContain('Home');
     });
   });
 });

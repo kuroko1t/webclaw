@@ -27,8 +27,6 @@ export interface PageSnapshot {
 
 /** Options for snapshot generation */
 export interface SnapshotOptions {
-  /** Maximum token budget for the snapshot text (default: 4000) */
-  maxTokens?: number;
   /** Include only interactive elements */
   interactiveOnly?: boolean;
   /** Focus on a specific landmark region (e.g., 'main', 'nav', 'contentinfo', 'complementary') */

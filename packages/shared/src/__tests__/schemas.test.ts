@@ -158,11 +158,6 @@ describe('pageSnapshotSchema', () => {
     const result = pageSnapshotSchema.safeParse({});
     expect(result.success).toBe(true);
   });
-
-  it('rejects negative maxTokens', () => {
-    const result = pageSnapshotSchema.safeParse({ maxTokens: -1 });
-    expect(result.success).toBe(false);
-  });
 });
 
 describe('listWebMCPToolsSchema', () => {

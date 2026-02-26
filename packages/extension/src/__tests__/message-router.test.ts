@@ -120,14 +120,13 @@ describe('MessageRouter', () => {
         id: 'req-3',
         type: 'request',
         method: 'snapshot',
-        payload: { maxTokens: 4000 },
+        payload: {},
         timestamp: Date.now(),
       });
 
       expect(result.type).toBe('response');
       expect(mockTabManager.sendToContentScript).toHaveBeenCalledWith(1, {
         action: 'snapshot',
-        maxTokens: 4000,
       });
       expect(mockTabManager.setSnapshotId).toHaveBeenCalledWith(1, 'snap-123');
     });
@@ -520,7 +519,7 @@ describe('MessageRouter', () => {
         id: 'req-tab',
         type: 'request',
         method: 'snapshot',
-        payload: { tabId: 42, maxTokens: 1000 },
+        payload: { tabId: 42 },
         timestamp: Date.now(),
       });
 

@@ -34,10 +34,9 @@ async function handleAction(message: {
       return { pong: true };
 
     case 'snapshot': {
-      const maxTokens = message.maxTokens as number | undefined;
       const focusRegion = message.focusRegion as string | undefined;
       const interactiveOnly = message.interactiveOnly as boolean | undefined;
-      const result = takeSnapshot({ maxTokens, focusRegion, interactiveOnly });
+      const result = takeSnapshot({ focusRegion, interactiveOnly });
       logActivity('snapshot', { snapshotId: result.snapshotId });
       return result;
     }

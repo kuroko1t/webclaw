@@ -185,10 +185,10 @@ Every interactive element gets a stable `@ref` label. The AI reads the tree, pic
 | Tool | Parameters | Description |
 |------|-----------|-------------|
 | `navigate_to` | `url`, `tabId?` | Navigate to a URL |
-| `page_snapshot` | `maxTokens?`, `tabId?` | Get a compact accessibility tree with `@ref` labels |
+| `page_snapshot` | `focusRegion?`, `interactiveOnly?`, `tabId?` | Get a compact accessibility tree with `@ref` labels |
 | `click` | `ref`, `snapshotId`, `tabId?` | Click an element by its `@ref` label |
 | `hover` | `ref`, `snapshotId`, `tabId?` | Hover over an element to reveal hidden UI (dropdowns, tooltips) |
-| `type_text` | `ref`, `text`, `snapshotId`, `tabId?` | Type text into an input/textarea by `@ref` |
+| `type_text` | `ref`, `text`, `snapshotId`, `clearFirst?`, `tabId?` | Type text into an input/textarea by `@ref` |
 | `select_option` | `ref`, `value`, `snapshotId`, `tabId?` | Select a dropdown option by `@ref` |
 | `drop_files` | `ref`, `snapshotId`, `files`, `tabId?` | Drop files onto an element (e.g., upload images to GitHub issues) |
 | `screenshot` | `tabId?` | Capture the visible area of the active tab |

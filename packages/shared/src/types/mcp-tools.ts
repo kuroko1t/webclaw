@@ -11,7 +11,6 @@ export interface NavigateToParams {
 /** Parameters for page_snapshot tool */
 export interface PageSnapshotParams {
   tabId?: number;
-  maxTokens?: number;
   focusRegion?: string;
   interactiveOnly?: boolean;
 }

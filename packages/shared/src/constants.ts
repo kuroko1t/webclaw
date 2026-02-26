@@ -14,8 +14,6 @@ export const NATIVE_MESSAGING_MAX_SIZE = 1024 * 1024;
 /** Service Worker keepalive interval in ms (25 seconds, under 30s limit) */
 export const KEEPALIVE_INTERVAL_MS = 25_000;
 
-/** Default snapshot token budget (0 = no limit) */
-export const DEFAULT_SNAPSHOT_MAX_TOKENS = 0;
 
 /** Content script ↔ page context message channel */
 export const PAGE_BRIDGE_CHANNEL = 'webclaw-page-bridge';
