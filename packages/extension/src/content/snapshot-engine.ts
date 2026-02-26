@@ -194,19 +194,24 @@ function getAccessibleName(el: Element): string {
     if ('placeholder' in el && el.placeholder) return el.placeholder;
   }
 
-  // title attribute
-  const title = el.getAttribute('title');
-  if (title) return title.trim();
+  // Direct text for buttons, links, headings, legends
+  // (per W3C accname spec: subtree content before title attribute)
+  // Collapse whitespace: DOM textContent preserves source formatting (newlines, indentation)
+  // but browsers render consecutive whitespace as a single space in normal flow.
+  const tag = el.tagName;
+  if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || tag === 'LEGEND' || /^H[1-6]$/.test(tag)) {
+    const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (text) return text;
+  }
 
   // alt for images and image inputs
   if (el instanceof HTMLImageElement && el.alt) return el.alt;
   if (el instanceof HTMLInputElement && el.type === 'image' && el.alt) return el.alt;
 
-  // Direct text for buttons, links, headings, legends
-  const tag = el.tagName;
-  if (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || tag === 'LEGEND' || /^H[1-6]$/.test(tag)) {
-    const text = el.textContent?.trim() ?? '';
-    return text.length > 80 ? text.slice(0, 77) + '...' : text;
+  // title attribute (fallback — used when no textContent or other name source)
+  const title = el.getAttribute('title');
+  if (title) {
+    return title.replace(/\s+/g, ' ').trim();
   }
 
   // Text content for leaf elements with a role (explicit ARIA or implicit structural)
@@ -214,8 +219,8 @@ function getAccessibleName(el: Element): string {
   const ariaRole = el.getAttribute('role');
   const hasRole = ariaRole || el.tagName in STRUCTURAL_ROLES;
   if (hasRole && !el.children.length) {
-    const text = el.textContent?.trim() ?? '';
-    if (text) return text.length > 80 ? text.slice(0, 77) + '...' : text;
+    const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (text) return text;
   }
 
   return '';
@@ -354,9 +359,9 @@ function walkDOM(
   // Fallback: if element has a role and all DOM children collapsed to null,
   // use textContent as the name (handles <td><span>text</span></td> etc.)
   if (!node.name && children.length === 0 && el.children.length > 0 && role) {
-    const text = el.textContent?.trim() ?? '';
+    const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
     if (text) {
-      node.name = text.length > 80 ? text.slice(0, 77) + '...' : text;
+      node.name = text;
     }
   }
 
@@ -657,7 +662,7 @@ export function takeSnapshot(
   // Token budget control with smart truncation (85% head / 15% tail)
   const maxTokens = options.maxTokens ?? DEFAULT_SNAPSHOT_MAX_TOKENS;
   const estimatedTokens = Math.ceil(text.length / 4);
-  if (estimatedTokens > maxTokens) {
+  if (maxTokens > 0 && estimatedTokens > maxTokens) {
     const maxChars = maxTokens * 4;
     const headBudget = Math.floor(maxChars * 0.85);
     const tailBudget = maxChars - headBudget;

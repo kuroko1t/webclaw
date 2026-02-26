@@ -112,7 +112,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
     'Get a compact accessibility tree snapshot of the current page with @ref labels for interactive elements',
     {
       tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
-      maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: 4000)'),
+      maxTokens: z.number().int().positive().optional().describe('Maximum token budget for the snapshot (default: no limit). Set to limit output size for large pages.'),
       focusRegion: z.string().optional().describe('Focus on a specific landmark region (e.g., "main", "nav", "header", "footer", "sidebar", "complementary", "banner", "contentinfo")'),
       interactiveOnly: z.boolean().optional().describe('Only include interactive elements (buttons, links, inputs) and their structural ancestors. Useful for large pages where you need to find clickable elements without token overflow.'),
     },

@@ -451,9 +451,15 @@ describe('snapshot-engine', () => {
       expect(result.text).toContain('Enter name');
     });
 
-    it('uses title attribute for name (higher priority than text content)', () => {
+    it('uses textContent over title for buttons/links (per W3C accname spec)', () => {
       document.body.innerHTML = '<button title="Close window">X</button>';
-      // title attribute is checked before direct text content
+      // Per W3C accname spec: subtree content (textContent) takes priority over title for buttons/links
+      const result = takeSnapshot();
+      expect(result.text).toContain('button "X"');
+    });
+
+    it('uses title attribute as fallback when no textContent', () => {
+      document.body.innerHTML = '<button title="Close window"></button>';
       const result = takeSnapshot();
       expect(result.text).toContain('Close window');
     });
@@ -464,13 +470,12 @@ describe('snapshot-engine', () => {
       expect(result.text).toContain('Company Logo');
     });
 
-    it('truncates long accessible names', () => {
+    it('preserves long accessible names without truncation', () => {
       const longName = 'A'.repeat(100);
       document.body.innerHTML = `<button>${longName}</button>`;
       const result = takeSnapshot();
-      // Should be truncated to 77 chars + "..."
-      expect(result.text).toContain('...');
-      expect(result.text).not.toContain(longName);
+      expect(result.text).toContain(longName);
+      expect(result.text).not.toContain('...');
     });
   });
 

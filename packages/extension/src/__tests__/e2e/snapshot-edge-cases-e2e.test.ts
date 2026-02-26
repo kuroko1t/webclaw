@@ -378,14 +378,12 @@ describe('Snapshot & Action Edge Cases E2E', () => {
     expect(ref).toBeTruthy();
   }, 30_000);
 
-  it('should truncate long button text at 80 chars with ellipsis', async () => {
+  it('should preserve long button text without truncation', async () => {
     await openPageAndWaitForContentScript(browser, page, `http://127.0.0.1:${port}/special-chars`);
     const snap = await sendToContentScript(browser, page, { action: 'snapshot' });
 
-    // Long button text should be truncated
-    expect(snap.text).toContain('...');
-    // Should NOT contain the full text
-    expect(snap.text).not.toContain('significant margin');
+    // Long button text should be preserved in full
+    expect(snap.text).toContain('significant margin');
   }, 30_000);
 
   it('should handle emoji in button text', async () => {
