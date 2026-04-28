@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/kuroko1t-webclaw-badge.png)](https://mseep.ai/app/kuroko1t-webclaw)
+
 # WebClaw
 
 [![CI](https://github.com/kuroko1t/webclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/kuroko1t/webclaw/actions/workflows/ci.yml)
