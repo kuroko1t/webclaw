@@ -59,7 +59,8 @@ async function handleAction(message: {
       const ref = message.ref as string;
       const text = message.text as string;
       const clearFirst = message.clearFirst as boolean | undefined;
-      const result = typeText(ref, text, clearFirst);
+      const mode = (message.mode as 'auto' | 'synthetic' | 'value' | undefined) ?? 'auto';
+      const result = typeText(ref, text, clearFirst ?? true, mode);
       logActivity('typeText', { ref, text: text.slice(0, 20), success: result.success });
       return result;
     }

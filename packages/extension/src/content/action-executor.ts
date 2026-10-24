@@ -4,6 +4,9 @@
  */
 import { resolveRef } from './snapshot-engine';
 import { PAGE_BRIDGE_CHANNEL } from 'webclaw-shared';
+import { tokenizeKeys } from './key-tokens';
+export { tokenizeKeys } from './key-tokens';
+export type { KeyToken } from './key-tokens';
 
 /** Check if an element is disabled (native :disabled or aria-disabled="true") */
 function isElementDisabled(el: HTMLElement): boolean {
@@ -85,12 +88,96 @@ export function hoverElement(ref: string): { success: boolean; error?: string } 
   return { success: true };
 }
 
-/** Type text into an element by @ref */
+/** Parent in the composed tree (crosses shadow root boundaries). */
+function composedParent(el: Element): Element | null {
+  if (el.parentElement) return el.parentElement;
+  const root = el.getRootNode();
+  return root instanceof ShadowRoot ? root.host : null;
+}
+
+const CHIP_PATTERN = /chip|(^|[-_\s])tags?([-_\s]|$)/i;
+
+/**
+ * Heuristic: is this input part of a chip/tag editor (e.g. YouTube Studio tags,
+ * where a comma or Enter commits the typed text as a chip)?
+ */
+export function isChipInput(el: Element): boolean {
+  let cur: Element | null = el;
+  for (let depth = 0; cur && depth < 8; depth++) {
+    const cls = typeof cur.className === 'string' ? cur.className : '';
+    if (CHIP_PATTERN.test(cur.tagName) || CHIP_PATTERN.test(cur.id) || CHIP_PATTERN.test(cls)) {
+      return true;
+    }
+    cur = composedParent(cur);
+  }
+  return false;
+}
+
+/** Whether type_text needs real key presses for this text/element. */
+export function needsKeyPresses(el: Element, text: string): boolean {
+  return /[\n\t]/.test(text) || (text.includes(',') && isChipInput(el));
+}
+
+const KEY_INFO: Record<'Enter' | 'Tab' | ',', { key: string; code: string; keyCode: number }> = {
+  Enter: { key: 'Enter', code: 'Enter', keyCode: 13 },
+  Tab: { key: 'Tab', code: 'Tab', keyCode: 9 },
+  ',': { key: ',', code: 'Comma', keyCode: 188 },
+};
+
+/** Dispatch a synthetic (untrusted) keydown/keypress/keyup sequence. */
+function dispatchSyntheticKey(el: Element, k: 'Enter' | 'Tab' | ','): void {
+  const info = KEY_INFO[k];
+  const opts = {
+    key: info.key,
+    code: info.code,
+    keyCode: info.keyCode,
+    which: info.keyCode,
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  };
+  const notCanceled = el.dispatchEvent(new KeyboardEvent('keydown', opts));
+  if (k !== 'Tab') el.dispatchEvent(new KeyboardEvent('keypress', { ...opts, charCode: info.keyCode }));
+  if (notCanceled && k === ',' && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+    // Default action of a printable key: insert it
+    setNativeValue(el, el.value + ',');
+    el.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: ',', bubbles: true, composed: true }));
+  }
+  el.dispatchEvent(new KeyboardEvent('keyup', opts));
+}
+
+function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  const setter = Object.getOwnPropertyDescriptor(
+    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
+    'value'
+  )?.set;
+  if (setter) setter.call(el, value);
+  else el.value = value;
+}
+
+type TypeTextResult = {
+  success: boolean;
+  error?: string;
+  needsTrustedInput?: boolean;
+  commaAsKey?: boolean;
+};
+
+/**
+ * Type text into an element by @ref.
+ *
+ * Plain text keeps the original behaviour (value setter + input/change events).
+ * When the text contains "\n" / "\t" (or "," on a chip/tag input) and
+ * `mode` is 'auto', the element is only focused/cleared and
+ * `needsTrustedInput: true` is returned so the service worker can type it with
+ * trusted CDP input events. `mode: 'synthetic'` is the fallback when the
+ * debugger is unavailable: synthetic KeyboardEvents are dispatched per key.
+ */
 export function typeText(
   ref: string,
   text: string,
-  clearFirst = true
-): { success: boolean; error?: string } {
+  clearFirst = true,
+  mode: 'auto' | 'synthetic' | 'value' = 'auto'
+): TypeTextResult {
   const el = resolveRef(ref);
   if (!el) {
     return { success: false, error: `Element not found for ref ${ref}` };
@@ -115,24 +202,55 @@ export function typeText(
   (el as HTMLElement).focus();
   el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
 
+  if (mode !== 'value' && needsKeyPresses(el, text)) {
+    if (mode === 'auto') {
+      // Prepare the field; the service worker types with trusted events.
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+        if (clearFirst) {
+          el.select();
+        } else {
+          const end = el.value.length;
+          el.setSelectionRange?.(end, end);
+        }
+      } else {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        if (!clearFirst) range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+      return { success: true, needsTrustedInput: true, commaAsKey: isChipInput(el) };
+    }
+
+    // Synthetic fallback
+    const tokens = tokenizeKeys(text, isChipInput(el));
+    let first = true;
+    for (const t of tokens) {
+      if (t.kind === 'text') {
+        insertPlainText(el, t.text, first && clearFirst);
+      } else {
+        if (first && clearFirst) insertPlainText(el, '', true);
+        dispatchSyntheticKey(el, t.key);
+      }
+      first = false;
+    }
+    return { success: true };
+  }
+
+  insertPlainText(el, text, clearFirst);
+  return { success: true };
+}
+
+/** Original value-based text insertion (input/textarea/contenteditable). */
+function insertPlainText(el: Element, text: string, clearFirst: boolean): void {
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
     if (clearFirst) {
       el.value = '';
     }
 
     // Use native input setter for React/Vue compatibility
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-      el instanceof HTMLTextAreaElement
-        ? HTMLTextAreaElement.prototype
-        : HTMLInputElement.prototype,
-      'value'
-    )?.set;
-
-    if (nativeInputValueSetter) {
-      nativeInputValueSetter.call(el, clearFirst ? text : el.value + text);
-    } else {
-      el.value = clearFirst ? text : el.value + text;
-    }
+    setNativeValue(el, clearFirst ? text : el.value + text);
 
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -159,6 +277,7 @@ export function typeText(
       selection?.removeAllRanges();
       selection?.addRange(range);
     }
+    if (!text) return;
     // Try execCommand first (works with most editors)
     let inserted = false;
     if (typeof document.execCommand === 'function') {
@@ -184,8 +303,6 @@ export function typeText(
       }));
     }
   }
-
-  return { success: true };
 }
 
 /** Select an option by @ref and value */
@@ -259,11 +376,76 @@ function base64ToFile(name: string, mimeType: string, base64Data: string): File 
   return new File([ab], name, { type: mimeType });
 }
 
-/** Drop files onto an element by @ref (file input or drag-and-drop target) */
+/** Collect all <input type="file"> in a root, descending into open shadow roots. */
+function collectFileInputs(root: ParentNode, out: HTMLInputElement[] = []): HTMLInputElement[] {
+  for (const node of root.querySelectorAll('*')) {
+    if (node instanceof HTMLInputElement && node.type === 'file') out.push(node);
+    if (node.shadowRoot) collectFileInputs(node.shadowRoot, out);
+  }
+  return out;
+}
+
+/** Composed ancestor chain of an element, starting with the element itself. */
+function composedAncestors(el: Element): Element[] {
+  const chain: Element[] = [];
+  for (let cur: Element | null = el; cur; cur = composedParent(cur)) chain.push(cur);
+  return chain;
+}
+
+/**
+ * Find the <input type="file"> closest to `el` in the composed tree:
+ * the one sharing the deepest common ancestor with it (inputs inside `el`
+ * itself win). Shadow roots are searched as well. Returns null if the page
+ * has no enabled file input.
+ */
+export function findNearestFileInput(el: Element): HTMLInputElement | null {
+  const inputs = collectFileInputs(document).filter((i) => !i.disabled);
+  if (inputs.length === 0) return null;
+  const chain = composedAncestors(el);
+  const depthOf = new Map<Element, number>();
+  chain.forEach((a, i) => depthOf.set(a, i));
+
+  let best: HTMLInputElement | null = null;
+  let bestDist = Infinity;
+  for (const input of inputs) {
+    for (let cur: Element | null = input; cur; cur = composedParent(cur)) {
+      const d = depthOf.get(cur);
+      if (d !== undefined) {
+        if (d < bestDist) {
+          bestDist = d;
+          best = input;
+        }
+        break;
+      }
+    }
+  }
+  return best ?? inputs[0];
+}
+
+function setInputFiles(input: HTMLInputElement, fileObjects: File[]): void {
+  const dt = new DataTransfer();
+  for (const file of fileObjects) {
+    dt.items.add(file);
+  }
+  input.files = dt.files;
+  input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+}
+
+/**
+ * Drop files onto an element by @ref.
+ *
+ * 1. The ref is an <input type="file">: set its files directly.
+ * 2. Otherwise, if the page has a (usually hidden) <input type="file">, use
+ *    the one nearest to the ref (e.g. an upload button or drop zone) and set
+ *    its files. This avoids the OS file picker, which cannot be opened by
+ *    untrusted clicks.
+ * 3. Fallback: synthetic drag-and-drop events on the element.
+ */
 export function dropFiles(
   ref: string,
   files: Array<{ name: string; mimeType: string; base64Data: string }>
-): { success: boolean; error?: string } {
+): { success: boolean; error?: string; method?: string } {
   const el = resolveRef(ref);
   if (!el) {
     return { success: false, error: `Element not found for ref ${ref}` };
@@ -277,17 +459,18 @@ export function dropFiles(
 
   // Strategy 1: <input type="file"> — set files via DataTransfer
   if (el instanceof HTMLInputElement && el.type === 'file') {
-    const dt = new DataTransfer();
-    for (const file of fileObjects) {
-      dt.items.add(file);
-    }
-    el.files = dt.files;
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    return { success: true };
+    setInputFiles(el, fileObjects);
+    return { success: true, method: 'file-input' };
   }
 
-  // Strategy 2: Drag-and-drop event sequence
+  // Strategy 2: nearest file input in the page (incl. shadow DOM)
+  const input = findNearestFileInput(el);
+  if (input) {
+    setInputFiles(input, fileObjects);
+    return { success: true, method: 'nearest-file-input' };
+  }
+
+  // Strategy 3: Drag-and-drop event sequence
   el.scrollIntoView?.({ behavior: 'instant', block: 'center' });
   const rect = el.getBoundingClientRect();
   const clientX = rect.left + rect.width / 2;
@@ -305,7 +488,7 @@ export function dropFiles(
   el.dispatchEvent(new DragEvent('drop', commonOpts));
   el.dispatchEvent(new DragEvent('dragleave', commonOpts));
 
-  return { success: true };
+  return { success: true, method: 'drag-and-drop' };
 }
 
 /** Invoke a WebMCP native tool via page context bridge */

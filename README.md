@@ -198,6 +198,33 @@ Every interactive element gets a stable `@ref` label. The AI reads the tree, pic
 </details>
 
 <details>
+<summary><b>Keys, chip inputs and file uploads</b></summary>
+
+**`type_text` key presses.** Plain text is set as the field value, as before. When `text` contains
+special characters, they are sent as real (trusted) key presses through the Chrome debugger
+protocol, so widgets that only react to keyboard events work:
+
+| Character in `text` | Sent as |
+|---------------------|---------|
+| `\n` | Enter (submit, commit a date/time picker, add a chip) |
+| `\t` | Tab (move focus / blur to commit a field) |
+| `,` | Comma key — only when the target is a chip/tag input (an ancestor's tag name, id or class contains `chip` or `tag`/`tags`); elsewhere commas are typed as text |
+
+Example: `type_text(ref, "tag1,tag2,")` adds two chips in YouTube Studio's tag field, and
+`type_text(ref, "2026/10/20\n")` commits a date picker's text field. The surrounding text is
+inserted with trusted `Input.insertText` (IME-safe). The debugger is attached only for the
+duration of the call; if it cannot attach (e.g. DevTools is open on the tab), synthetic
+`KeyboardEvent`s are dispatched instead.
+
+**`drop_files` on upload buttons.** If `ref` is not an `<input type="file">`, the nearest file
+input in the page (shadow DOM included) is used — the one sharing the closest ancestor with
+`ref`, e.g. the hidden input behind an "Select files" button. Its `files` are set directly, so
+no OS file picker is needed. Synthetic drag-and-drop on `ref` is only used when the page has
+no file input.
+
+</details>
+
+<details>
 <summary><b>Tab Management</b> — new, list, switch, close</summary>
 
 | Tool | Parameters | Description |

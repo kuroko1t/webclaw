@@ -28,6 +28,7 @@ import type {
 import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
 import type { DialogHandler } from './dialog-handler';
+import { typeWithDebugger } from './trusted-input';
 
 /** Default timeout for waiting for tab load (30 seconds) */
 const TAB_LOAD_TIMEOUT_MS = 30_000;
@@ -282,12 +283,44 @@ export class MessageRouter {
   private async handleTypeText(params: TypeTextParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.sendToContentScript(tabId, {
+    const result = await this.sendToContentScript<{
+      success: boolean;
+      error?: string;
+      needsTrustedInput?: boolean;
+      commaAsKey?: boolean;
+    }>(tabId, {
       action: 'typeText',
       ref: params.ref,
       text: params.text,
       clearFirst: params.clearFirst,
     });
+    if (!result?.needsTrustedInput) {
+      return result;
+    }
+
+    // The text contains keys ("\n", "\t", or "," on a chip input) that must be
+    // real key presses. The content script focused/selected the field; type
+    // the text with trusted CDP input events.
+    try {
+      await typeWithDebugger(
+        tabId,
+        params.text,
+        result.commaAsKey ?? false,
+        this.dialogHandler?.isAttached(tabId) ?? false
+      );
+      return { success: true, trusted: true };
+    } catch (err) {
+      // Debugger unavailable (e.g. DevTools open): fall back to synthetic events
+      const fallback = await this.sendToContentScript(tabId, {
+        action: 'typeText',
+        ref: params.ref,
+        text: params.text,
+        clearFirst: params.clearFirst,
+        mode: 'synthetic',
+      });
+      const message = err instanceof Error ? err.message : String(err);
+      return { ...(fallback as object), trusted: false, warning: `Trusted input failed: ${message}` };
+    }
   }
 
   private async handleSelectOption(

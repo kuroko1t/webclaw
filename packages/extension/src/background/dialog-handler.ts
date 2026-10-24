@@ -113,6 +113,11 @@ export class DialogHandler {
     });
   }
 
+  /** Whether the debugger is currently attached to the tab by this handler */
+  isAttached(tabId: number): boolean {
+    return this.attachedTabs.has(tabId);
+  }
+
   private async ensureAttached(tabId: number): Promise<void> {
     if (this.attachedTabs.has(tabId)) {
       return;
