@@ -172,7 +172,10 @@ export class MessageRouter {
 
       // Classify errors for better diagnostics
       let code = 'HANDLER_ERROR';
-      if (message.includes('not found') || message.includes('No tab with id')) {
+      if (err instanceof TrustedInputError && err.phase === 'input') {
+        // Typing stopped part way: retrying as is would enter the text twice.
+        code = 'PARTIAL_INPUT';
+      } else if (message.includes('not found') || message.includes('No tab with id')) {
         code = 'TAB_NOT_FOUND';
       } else if (message.includes('No active tab') || message.includes('No tab')) {
         code = 'NO_ACTIVE_TAB';

@@ -94,5 +94,7 @@ describe('MessageRouter handleTypeText', () => {
     expect(sendToContentScript).toHaveBeenCalledTimes(1);
     expect(res.type).toBe('error');
     expect((res.payload as { message: string }).message).toContain('1 of 2 characters');
+    // A dedicated code, so the server's hint does not suggest a plain retry.
+    expect((res.payload as { code: string }).code).toBe('PARTIAL_INPUT');
   });
 });

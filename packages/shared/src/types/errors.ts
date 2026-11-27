@@ -13,7 +13,8 @@ export type ErrorCode =
   | 'HANDLER_ERROR'
   | 'CONTENT_SCRIPT_ERROR'
   | 'SCREENSHOT_FAILED'
-  | 'DIALOG_NOT_FOUND';
+  | 'DIALOG_NOT_FOUND'
+  | 'PARTIAL_INPUT';
 
 /** Map of error codes to human-readable recovery suggestions */
 export const ERROR_RECOVERY: Record<ErrorCode, string> = {
@@ -37,4 +38,6 @@ export const ERROR_RECOVERY: Record<ErrorCode, string> = {
     'Failed to capture a screenshot. Ensure the tab is visible and not a chrome:// page.',
   DIALOG_NOT_FOUND:
     'No JavaScript dialog (alert/confirm/prompt) was detected on this tab. The dialog may have already been dismissed.',
+  PARTIAL_INPUT:
+    'Only part of the text was typed. Do not simply retry: the field may already hold the first part, and a key press may have submitted it or opened a dialog. If a dialog is open, answer it with handle_dialog, then take a new page_snapshot to see what was entered before typing the rest.',
 };
