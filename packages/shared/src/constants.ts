@@ -30,6 +30,9 @@ export const WEBSOCKET_PORT_RANGE_SIZE = 10;
 /** Environment variable to override the WebSocket port */
 export const WEBSOCKET_PORT_ENV = 'WEBCLAW_PORT';
 
+/** Environment variable selecting the Chrome profile directory to open when auto-launching Chrome */
+export const CHROME_PROFILE_ENV = 'WEBCLAW_CHROME_PROFILE';
+
 /** Operation-specific timeouts in milliseconds */
 export const OPERATION_TIMEOUTS: Record<string, number> = {
   navigate: 30_000,
