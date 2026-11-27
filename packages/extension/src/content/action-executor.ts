@@ -444,17 +444,74 @@ function composedAncestors(el: Element): Element[] {
 }
 
 /**
- * Find the <input type="file"> closest to `el` in the composed tree:
- * the one sharing the deepest common ancestor with it (inputs inside `el`
- * itself win). Shadow roots are searched as well. Returns null if the page
- * has no enabled file input.
+ * How many composed ancestors above the ref drop_files searches for a file
+ * input when the ref is not inside a form or dialog.
  */
-export function findNearestFileInput(el: Element): HTMLInputElement | null {
-  const inputs = collectFileInputs(document).filter((i) => !i.disabled);
+export const FILE_INPUT_SEARCH_DEPTH = 5;
+
+const DROP_CONTAINER_SELECTOR = 'form, dialog, [role="dialog"]';
+
+/**
+ * The subtree in which drop_files looks for a file input: the nearest
+ * composed ancestor that is a form or dialog, otherwise the ancestor
+ * FILE_INPUT_SEARCH_DEPTH levels up.
+ */
+export function fileInputSearchRoot(el: Element): Element {
+  for (let cur: Element | null = el; cur; cur = composedParent(cur)) {
+    if (cur.matches(DROP_CONTAINER_SELECTOR)) return cur;
+  }
+  let root = el;
+  for (let i = 0; i < FILE_INPUT_SEARCH_DEPTH; i++) {
+    const parent = composedParent(root);
+    if (!parent) break;
+    root = parent;
+  }
+  return root;
+}
+
+/** Whether a file satisfies an <input accept> list (".ext", "type/*", "type/subtype"). */
+export function fileMatchesAccept(accept: string, file: { name: string; mimeType: string }): boolean {
+  const tokens = accept
+    .split(',')
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  if (tokens.length === 0) return true;
+  const name = file.name.toLowerCase();
+  const mime = file.mimeType.toLowerCase();
+  return tokens.some((t) => {
+    if (t.startsWith('.')) return name.endsWith(t);
+    if (t.endsWith('/*')) return mime.startsWith(t.slice(0, -1));
+    return mime === t;
+  });
+}
+
+/**
+ * Find the <input type="file"> to receive files dropped on `el` (an upload
+ * button or drop zone). Only inputs in the same form/dialog (or within
+ * FILE_INPUT_SEARCH_DEPTH ancestors) are considered, including inputs in
+ * open shadow roots. Inputs that are disabled (also via a disabled
+ * fieldset), whose accept list rejects one of the files, or that lack
+ * `multiple` when several files are given are skipped. Among the rest the
+ * one sharing the deepest common ancestor with `el` wins. Returns null when
+ * there is no candidate, so the caller falls back to drag-and-drop.
+ */
+export function findFileInputForDrop(
+  el: Element,
+  files: Array<{ name: string; mimeType: string }>
+): HTMLInputElement | null {
+  const root = fileInputSearchRoot(el);
+  const found = collectFileInputs(root);
+  if (root.shadowRoot) collectFileInputs(root.shadowRoot, found);
+  const inputs = found.filter(
+    (i) =>
+      !i.matches(':disabled') &&
+      (files.length <= 1 || i.multiple) &&
+      files.every((f) => fileMatchesAccept(i.accept, f))
+  );
   if (inputs.length === 0) return null;
-  const chain = composedAncestors(el);
+
   const depthOf = new Map<Element, number>();
-  chain.forEach((a, i) => depthOf.set(a, i));
+  composedAncestors(el).forEach((a, i) => depthOf.set(a, i));
 
   let best: HTMLInputElement | null = null;
   let bestDist = Infinity;
@@ -470,7 +527,7 @@ export function findNearestFileInput(el: Element): HTMLInputElement | null {
       }
     }
   }
-  return best ?? inputs[0];
+  return best;
 }
 
 function setInputFiles(input: HTMLInputElement, fileObjects: File[]): void {
@@ -487,10 +544,10 @@ function setInputFiles(input: HTMLInputElement, fileObjects: File[]): void {
  * Drop files onto an element by @ref.
  *
  * 1. The ref is an <input type="file">: set its files directly.
- * 2. Otherwise, if the page has a (usually hidden) <input type="file">, use
- *    the one nearest to the ref (e.g. an upload button or drop zone) and set
- *    its files. This avoids the OS file picker, which cannot be opened by
- *    untrusted clicks.
+ * 2. Otherwise, if a (usually hidden) <input type="file"> in the same
+ *    form/dialog or a few levels up accepts the files, set its files (see
+ *    findFileInputForDrop). This avoids the OS file picker, which cannot be
+ *    opened by untrusted clicks.
  * 3. Fallback: synthetic drag-and-drop events on the element.
  */
 export function dropFiles(
@@ -514,8 +571,8 @@ export function dropFiles(
     return { success: true, method: 'file-input' };
   }
 
-  // Strategy 2: nearest file input in the page (incl. shadow DOM)
-  const input = findNearestFileInput(el);
+  // Strategy 2: a matching file input near the ref (incl. shadow DOM)
+  const input = findFileInputForDrop(el, files);
   if (input) {
     setInputFiles(input, fileObjects);
     return { success: true, method: 'nearest-file-input' };
