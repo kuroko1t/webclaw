@@ -11,10 +11,20 @@ import { createWebClawServer } from './server.js';
 import { WebSocketClient } from './ws-client.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { install } from './installer.js';
+import { preLaunchWaitMs, widePortRangeNote } from './port-range.js';
 import { WEBSOCKET_DEFAULT_PORT, WEBSOCKET_PORT_ENV, WEBSOCKET_PORT_RANGE_SIZE } from 'webclaw-shared';
 
 /** How often the orphan guard checks whether the parent process is still alive. */
 const PARENT_WATCHDOG_INTERVAL_MS = 5_000;
+
+function clientOptions(port: number, explicit: boolean) {
+  return { preLaunchWaitMs: preLaunchWaitMs(port, explicit), connectNote: widePortRangeNote(port) };
+}
+
+function warnWidePortRange(port: number): void {
+  const note = widePortRangeNote(port);
+  if (note) console.error(`[WebClaw] Warning: ${note}`);
+}
 
 const args = process.argv.slice(2);
 
@@ -32,7 +42,7 @@ Description:
   with the Chrome extension via a localhost WebSocket connection.
 
 Environment variables:
-  ${WEBSOCKET_PORT_ENV}    WebSocket port (default: ${WEBSOCKET_DEFAULT_PORT})
+  ${WEBSOCKET_PORT_ENV}    WebSocket port (default: first free port in ${WEBSOCKET_DEFAULT_PORT}–${WEBSOCKET_DEFAULT_PORT + WEBSOCKET_PORT_RANGE_SIZE - 1})
 
 Claude Desktop config:
   {
@@ -53,7 +63,7 @@ More info: https://github.com/kuroko1t/webclaw`);
   if (explicitPort !== null) {
     // Explicit port: use only that port (backward compatible)
     try {
-      wsClient = await WebSocketClient.create(explicitPort);
+      wsClient = await WebSocketClient.create(explicitPort, undefined, clientOptions(explicitPort, true));
     } catch (err) {
       const error = err as NodeJS.ErrnoException;
       if (error.code === 'EADDRINUSE') {
@@ -70,6 +80,7 @@ More info: https://github.com/kuroko1t/webclaw`);
       process.exit(1);
     }
     console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${explicitPort}`);
+    warnWidePortRange(explicitPort);
   } else {
     // Auto-scan port range
     let boundPort: number | null = null;
@@ -77,7 +88,7 @@ More info: https://github.com/kuroko1t/webclaw`);
     for (let i = 0; i < WEBSOCKET_PORT_RANGE_SIZE; i++) {
       const port = WEBSOCKET_DEFAULT_PORT + i;
       try {
-        wsClient = await WebSocketClient.create(port);
+        wsClient = await WebSocketClient.create(port, undefined, clientOptions(port, false));
         boundPort = port;
         break;
       } catch (err) {
@@ -97,6 +108,7 @@ More info: https://github.com/kuroko1t/webclaw`);
       process.exit(1);
     }
     console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${boundPort}`);
+    warnWidePortRange(boundPort);
   }
 
   let cleaningUp = false;

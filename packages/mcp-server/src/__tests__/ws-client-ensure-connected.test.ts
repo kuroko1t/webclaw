@@ -177,4 +177,49 @@ describe('WebSocketClient.request() auto-connect', () => {
     ext.close();
     await new Promise((r) => setTimeout(r, 100));
   });
+
+  it('waits for the extension before launching Chrome when preLaunchWaitMs is set', async () => {
+    const port = nextPort++;
+    wsClient = await WebSocketClient.create(port, undefined, { preLaunchWaitMs: 2000 });
+    mockLaunchChrome.mockResolvedValue(true);
+
+    const connectPromise = wsClient.ensureConnected(1000);
+    await new Promise((r) => setTimeout(r, 300));
+    const ext = new WebSocket(`ws://127.0.0.1:${port}`);
+    await new Promise<void>((resolve) => ext.on('open', resolve));
+    await connectPromise;
+
+    expect(mockLaunchChrome).not.toHaveBeenCalled();
+    expect(wsClient.isConnected()).toBe(true);
+    ext.close();
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  it('launches Chrome after preLaunchWaitMs when the extension stays away', async () => {
+    const port = nextPort++;
+    wsClient = await WebSocketClient.create(port, undefined, { preLaunchWaitMs: 300 });
+    mockLaunchChrome.mockResolvedValue(true);
+
+    const started = Date.now();
+    await expect(wsClient.ensureConnected(300)).rejects.toThrow('did not connect');
+    expect(mockLaunchChrome).toHaveBeenCalledTimes(1);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(550);
+  });
+
+  it('adds the connect note to the not-connected error', async () => {
+    const port = nextPort++;
+    wsClient = await WebSocketClient.create(port, undefined, { connectNote: 'Port X needs v0.11.0' });
+    mockLaunchChrome.mockResolvedValue(true);
+
+    await expect(wsClient.ensureConnected(200)).rejects.toThrow(/did not connect[\s\S]*\nNote: Port X needs v0\.11\.0/);
+  });
+
+  it('leaves the error unchanged without a connect note', async () => {
+    const port = nextPort++;
+    wsClient = await WebSocketClient.create(port);
+    mockLaunchChrome.mockResolvedValue(true);
+
+    const err = await wsClient.ensureConnected(200).catch((e: Error) => e);
+    expect((err as Error).message).not.toContain('Note:');
+  });
 });

@@ -30,6 +30,8 @@ describe('MCP Server stdio startup', () => {
 
     // Process should still be running
     expect(child.exitCode).toBeNull();
+    // 19070 is outside the extension's port range: no extension-version warning
+    expect(stderr).not.toContain('Warning:');
 
     // Kill it
     child.kill('SIGTERM');

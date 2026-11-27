@@ -2,65 +2,72 @@
  * WebSocket bridge between MCP Server and Service Worker.
  *
  * Connects to the MCP server's WebSocket endpoint and routes
- * incoming requests through the MessageRouter.
+ * incoming requests through the MessageRouter. The bridge makes one
+ * connection attempt per connect() call; when to retry is decided by the
+ * caller (see ReconnectScheduler), which hears about each outcome through
+ * BridgeEvents.
  */
 import type { BridgeMessage, BridgeRequest } from 'webclaw-shared';
 import type { MessageRouter } from './message-router';
 
-const RECONNECT_INTERVAL_MS = 3_000;
+export interface BridgeEvents {
+  /** The connection opened. */
+  onOpen?: () => void;
+  /**
+   * The socket closed. `wasOpen` is true for a disconnect and false when the
+   * attempt never connected.
+   */
+  onClose?: (wasOpen: boolean) => void;
+}
 
 export class WebSocketBridge {
   private ws: WebSocket | null = null;
   private url: string;
   private router: MessageRouter;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private events: BridgeEvents;
   private disposed = false;
-  private hasConnectedOnce = false;
 
-  constructor(url: string, router: MessageRouter) {
+  constructor(url: string, router: MessageRouter, events: BridgeEvents = {}) {
     this.url = url;
     this.router = router;
-    this.connect();
+    this.events = events;
   }
 
-  private connect(): void {
-    if (this.disposed) return;
+  /** Start one connection attempt unless a socket is already open or opening. */
+  connect(): void {
+    if (this.disposed || this.ws) return;
 
+    let opened = false;
+    let ws: WebSocket;
     try {
-      this.ws = new WebSocket(this.url);
-
-      this.ws.addEventListener('open', () => {
-        this.hasConnectedOnce = true;
-        console.log(`[WebClaw Bridge] Connected to MCP server (${this.url})`);
-      });
-
-      this.ws.addEventListener('message', (event) => {
-        this.handleMessage(event.data);
-      });
-
-      this.ws.addEventListener('close', () => {
-        if (this.hasConnectedOnce) {
-          console.log(`[WebClaw Bridge] Disconnected from MCP server (${this.url})`);
-        }
-        this.ws = null;
-        this.scheduleReconnect();
-      });
-
-      this.ws.addEventListener('error', () => {
-        // error event is always followed by close, so reconnect happens there
-      });
+      ws = new WebSocket(this.url);
     } catch {
-      this.ws = null;
-      this.scheduleReconnect();
+      this.events.onClose?.(false);
+      return;
     }
-  }
+    this.ws = ws;
 
-  private scheduleReconnect(): void {
-    if (this.disposed || this.reconnectTimer) return;
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.connect();
-    }, RECONNECT_INTERVAL_MS);
+    ws.addEventListener('open', () => {
+      opened = true;
+      console.log(`[WebClaw Bridge] Connected to MCP server (${this.url})`);
+      this.events.onOpen?.();
+    });
+
+    ws.addEventListener('message', (event) => {
+      this.handleMessage(event.data);
+    });
+
+    ws.addEventListener('close', () => {
+      if (opened) {
+        console.log(`[WebClaw Bridge] Disconnected from MCP server (${this.url})`);
+      }
+      if (this.ws === ws) this.ws = null;
+      if (!this.disposed) this.events.onClose?.(opened);
+    });
+
+    ws.addEventListener('error', () => {
+      // error event is always followed by close, which reports the outcome
+    });
   }
 
   private async handleMessage(data: unknown): Promise<void> {
@@ -126,10 +133,6 @@ export class WebSocketBridge {
 
   disconnect(): void {
     this.disposed = true;
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
     if (this.ws) {
       this.ws.close();
       this.ws = null;
