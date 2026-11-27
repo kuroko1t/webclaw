@@ -132,6 +132,49 @@ describe('ReconnectScheduler', () => {
     expect(scheduler.pendingDelay(3)).toBeLessThanOrEqual(FAST);
   });
 
+  it('tries the fast ports right away after a connection opens', () => {
+    const { scheduler, listening } = setup();
+    scheduler.start();
+    vi.advanceTimersByTime(1_000);
+    listening.add(0);
+    vi.advanceTimersByTime(FAST - 1_000); // ports 0-2 retry, port 0 connects
+    // Ports 1-2 have just retried; the rest of the next six unconnected
+    // ports (3-6) are tried at once, the others keep their slow timer.
+    for (let i = 1; i < RECONNECT_FAST_PORT_COUNT; i++) {
+      expect(scheduler.pendingDelay(i)).toBe(FAST);
+    }
+    for (let i = RECONNECT_FAST_PORT_COUNT; i <= 2 * RECONNECT_FAST_PORT_COUNT; i++) {
+      expect(scheduler.pendingDelay(i)).toBe(0);
+    }
+    expect(scheduler.pendingDelay(2 * RECONNECT_FAST_PORT_COUNT + 1)).toBe(SLOW - FAST);
+    // Only ports 1-3 stay on the fast side afterwards.
+    vi.advanceTimersByTime(1);
+    expect(scheduler.pendingDelay(3)).toBe(FAST);
+    expect(scheduler.pendingDelay(4)).toBe(SLOW);
+  });
+
+  it('bounds the extra attempts a connection triggers', () => {
+    const { scheduler, listening, total } = setup();
+    scheduler.start();
+    vi.advanceTimersByTime(1_000);
+    listening.add(0);
+    const before = total();
+    vi.advanceTimersByTime(FAST - 1_000); // ports 0-2 retry, port 0 connects
+    vi.advanceTimersByTime(1);
+    // 3 scheduled retries plus at most 2 x 3 immediate ones.
+    expect(total() - before).toBeLessThanOrEqual(3 + 2 * RECONNECT_FAST_PORT_COUNT);
+  });
+
+  it('connects a burst of servers without one fast interval per port', () => {
+    const { scheduler, listening } = setup();
+    scheduler.start();
+    vi.advanceTimersByTime(1_000);
+    for (let i = 0; i < 12; i++) listening.add(i); // 12 sessions start at once
+    vi.advanceTimersByTime(FAST); // ports 0-2 retry; each connection pulls the next one in
+    for (let i = 0; i < 12; i++) expect(scheduler.pendingDelay(i)).toBeNull();
+    expect(scheduler.isFast(12)).toBe(true);
+  });
+
   it('retries a disconnected high port fast for a few attempts, then slowly', () => {
     const { scheduler, listening, attempts, drop } = setup();
     listening.add(25);
