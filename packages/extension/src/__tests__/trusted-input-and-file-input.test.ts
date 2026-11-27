@@ -201,6 +201,29 @@ describe('findFileInputForDrop', () => {
     expect(findFileInputForDrop(document.getElementById('zone')!, [PNG])).toBeNull();
   });
 
+  it('does not reach the whole document on a shallow page', () => {
+    document.body.innerHTML = `
+      <header><nav><label>Avatar <input type="file" id="avatar" accept="image/*"></label></nav></header>
+      <main><section><div id="zone">Drop files here</div></section></main>`;
+    expect(findFileInputForDrop(document.getElementById('zone')!, [PNG])).toBeNull();
+  });
+
+  it('still finds an input next to the element directly under body', () => {
+    document.body.innerHTML = '<div><button id="b">Upload</button><input type="file" id="f" hidden></div>';
+    expect(findFileInputForDrop(document.getElementById('b')!, [PNG])!.id).toBe('f');
+  });
+
+  it('ignores file inputs inside another form or dialog', () => {
+    document.body.innerHTML = `
+      <main>
+        <section><div id="zone">Drop files here</div></section>
+        <dialog open><button>Choose</button><input type="file" id="in-dialog"></dialog>
+        <div role="dialog"><input type="file" id="in-role-dialog"></div>
+        <form><input type="file" id="in-form"></form>
+      </main>`;
+    expect(findFileInputForDrop(document.getElementById('zone')!, [PNG])).toBeNull();
+  });
+
   it('uses a file input anywhere in the same form or dialog', () => {
     document.body.innerHTML = `
       <input type="file" id="outside">
@@ -331,6 +354,22 @@ describe('dropFiles', () => {
     document.body.innerHTML = `
       <header><div><div><input type="file" id="avatar"></div></div></header>
       <main><div><div><div><div><div><div><button id="zone">Drop files here</button></div></div></div></div></div></div></main>`;
+    const zone = document.getElementById('zone')!;
+    const events: string[] = [];
+    for (const t of ['dragenter', 'dragover', 'drop']) zone.addEventListener(t, () => events.push(t));
+    const avatarChange = vi.fn();
+    document.getElementById('avatar')!.addEventListener('change', avatarChange);
+
+    const result = dropFiles(refOf(zone), [file]);
+    expect(result).toEqual({ success: true, method: 'drag-and-drop' });
+    expect(events).toEqual(['dragenter', 'dragover', 'drop']);
+    expect(avatarChange).not.toHaveBeenCalled();
+  });
+
+  it('drops onto a drop zone of a shallow page instead of the header avatar input', () => {
+    document.body.innerHTML = `
+      <header><label>Avatar <input type="file" id="avatar" accept="image/*"></label></header>
+      <main><section><div id="zone" role="button">Drop files here</div></section></main>`;
     const zone = document.getElementById('zone')!;
     const events: string[] = [];
     for (const t of ['dragenter', 'dragover', 'drop']) zone.addEventListener(t, () => events.push(t));

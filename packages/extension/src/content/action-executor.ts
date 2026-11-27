@@ -454,16 +454,19 @@ const DROP_CONTAINER_SELECTOR = 'form, dialog, [role="dialog"]';
 /**
  * The subtree in which drop_files looks for a file input: the nearest
  * composed ancestor that is a form or dialog, otherwise the ancestor
- * FILE_INPUT_SEARCH_DEPTH levels up.
+ * FILE_INPUT_SEARCH_DEPTH levels up. Without a form or dialog the search
+ * stops below <body>: on a shallow page five levels would otherwise reach
+ * the whole document.
  */
 export function fileInputSearchRoot(el: Element): Element {
   for (let cur: Element | null = el; cur; cur = composedParent(cur)) {
     if (cur.matches(DROP_CONTAINER_SELECTOR)) return cur;
   }
+  const doc = el.ownerDocument;
   let root = el;
   for (let i = 0; i < FILE_INPUT_SEARCH_DEPTH; i++) {
     const parent = composedParent(root);
-    if (!parent) break;
+    if (!parent || parent === doc.body || parent === doc.documentElement) break;
     root = parent;
   }
   return root;
@@ -491,7 +494,8 @@ export function fileMatchesAccept(accept: string, file: { name: string; mimeType
  * FILE_INPUT_SEARCH_DEPTH ancestors) are considered, including inputs in
  * open shadow roots. Inputs that are disabled (also via a disabled
  * fieldset), whose accept list rejects one of the files, or that lack
- * `multiple` when several files are given are skipped. Among the rest the
+ * `multiple` when several files are given are skipped, as are inputs inside
+ * another form or dialog than the one holding `el`. Among the rest the
  * one sharing the deepest common ancestor with `el` wins. Returns null when
  * there is no candidate, so the caller falls back to drag-and-drop.
  */
@@ -525,6 +529,9 @@ export function findFileInputForDrop(
         }
         break;
       }
+      // The input belongs to a form or dialog that does not contain `el`
+      // (e.g. another upload dialog on the page): not this element's input.
+      if (cur.matches(DROP_CONTAINER_SELECTOR)) break;
     }
   }
   return best;

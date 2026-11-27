@@ -221,9 +221,10 @@ says how many characters were sent and nothing is typed again.
 
 **`drop_files` on upload buttons.** If `ref` is not an `<input type="file">`, a file input near
 `ref` is used: one in the same `<form>` / `<dialog>` / `[role="dialog"]`, or within five
-ancestors when there is none (shadow DOM included), e.g. the hidden input behind a "Select files"
-button. Inputs that are disabled, whose `accept` does not match the files, or that lack
-`multiple` for several files are skipped; among the rest the closest one wins. Its `files` are
+ancestors (below `<body>`) when there is none (shadow DOM included), e.g. the hidden input behind
+a "Select files" button. Inputs that are disabled, whose `accept` does not match the files, that
+lack `multiple` for several files, or that sit in another form or dialog are skipped; among the
+rest the closest one wins. Its `files` are
 set directly, so no OS file picker is needed. Without such an input, synthetic drag-and-drop
 events are dispatched on `ref`.
 
