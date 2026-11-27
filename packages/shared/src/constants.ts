@@ -59,6 +59,36 @@ export const OPERATION_TIMEOUTS: Record<string, number> = {
   ping: 5_000,
 };
 
+/**
+ * Time budget for typing with trusted key presses (type_text with
+ * pressKeys): a fixed part plus a per-key allowance. The extension stops
+ * typing once this budget is used up so it can report a non-retryable error
+ * before the MCP server's request timeout fires.
+ */
+export const TRUSTED_TYPING_BASE_MS = 5_000;
+export const TRUSTED_TYPING_PER_KEY_MS = 250;
+
+/** Number of characters that type_text may send as key presses. */
+export function countKeyPresses(text: string): number {
+  const m = text.replace(/\r\n?/g, '\n').match(/[\n\t,]/g);
+  return m ? m.length : 0;
+}
+
+/** Budget the extension may spend on trusted typing for `text`. */
+export function trustedTypingBudgetMs(text: string): number {
+  return TRUSTED_TYPING_BASE_MS + countKeyPresses(text) * TRUSTED_TYPING_PER_KEY_MS;
+}
+
+/**
+ * MCP-side timeout for a type_text request. Without pressKeys this is the
+ * plain typeText timeout; with pressKeys the trusted typing budget is added
+ * on top so the extension always gives up first.
+ */
+export function typeTextTimeoutMs(text: string, pressKeys?: boolean): number {
+  const base = OPERATION_TIMEOUTS.typeText;
+  return pressKeys ? base + trustedTypingBudgetMs(text) : base;
+}
+
 /** Maximum number of retry attempts for transient failures */
 export const MAX_RETRY_ATTEMPTS = 2;
 

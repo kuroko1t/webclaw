@@ -35,6 +35,11 @@ export interface TypeTextParams {
   text: string;
   snapshotId: string;
   clearFirst?: boolean;
+  /**
+   * Send "\n" as Enter, "\t" as Tab and (on chip/tag inputs) "," as the
+   * Comma key instead of inserting them as text. Defaults to false.
+   */
+  pressKeys?: boolean;
   tabId?: number;
 }
 

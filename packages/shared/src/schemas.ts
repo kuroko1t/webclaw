@@ -48,6 +48,7 @@ export const typeTextSchema = z.object({
   text: z.string(),
   snapshotId: z.string().min(1),
   clearFirst: z.boolean().optional(),
+  pressKeys: z.boolean().optional(),
   tabId: z.number().int().optional(),
 });
 

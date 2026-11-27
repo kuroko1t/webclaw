@@ -277,12 +277,15 @@ export class WebSocketClient {
    * Retries up to MAX_RETRY_ATTEMPTS times with exponential backoff
    * for transient errors (connection lost, timeouts).
    * Non-transient errors are thrown immediately.
+   * `timeoutOverrideMs` overrides the per-operation timeout (e.g. type_text with
+   * pressKeys, whose duration depends on the text).
    */
   async requestWithRetry(
     method: BridgeMethod,
-    payload: unknown = {}
+    payload: unknown = {},
+    timeoutOverrideMs?: number
   ): Promise<BridgeMessage> {
-    const timeoutMs = OPERATION_TIMEOUTS[method] ?? 60_000;
+    const timeoutMs = timeoutOverrideMs ?? OPERATION_TIMEOUTS[method] ?? 60_000;
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {

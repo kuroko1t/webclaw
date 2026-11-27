@@ -45,6 +45,23 @@ describe('isChipInput', () => {
     expect(isChipInput(document.getElementById('plain')!)).toBe(false);
   });
 
+  it('matches common chip class names but not words that contain "chip"', () => {
+    document.body.innerHTML = `
+      <div class="MuiChip-root"><input id="mui"></div>
+      <div class="mat-chip-grid"><input id="mat"></div>
+      <div class="ChipInput"><input id="camel"></div>
+      <div class="microchip-specs"><input id="micro"></div>
+      <div class="chipset-list"><input id="chipset"></div>`;
+    const ids = ['mui', 'mat', 'camel', 'micro', 'chipset'];
+    expect(ids.map((id) => isChipInput(document.getElementById(id)!))).toEqual([
+      true,
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+
   it('detects chip containers across shadow roots', () => {
     const host = document.createElement('div');
     host.className = 'tags-editor';
@@ -69,10 +86,26 @@ describe('typeText key handling', () => {
     expect((document.getElementById('i') as HTMLInputElement).value).toBe('a, b');
   });
 
+  it('inserts newlines and tabs as text without pressKeys', () => {
+    document.body.innerHTML = '<textarea id="t">old</textarea>';
+    takeSnapshot();
+    const result = typeText('@e1', 'line1\nline2\tend');
+    expect(result).toEqual({ success: true });
+    expect((document.getElementById('t') as HTMLTextAreaElement).value).toBe('line1\nline2\tend');
+  });
+
+  it('does not treat commas on chip inputs as keys without pressKeys', () => {
+    document.body.innerHTML = '<div class="chip-bar"><input type="text" id="i"></div>';
+    takeSnapshot();
+    const result = typeText('@e1', 'a,b');
+    expect(result).toEqual({ success: true });
+    expect((document.getElementById('i') as HTMLInputElement).value).toBe('a,b');
+  });
+
   it('requests trusted input for text with a newline', () => {
     document.body.innerHTML = '<input type="text" id="i" value="old">';
     takeSnapshot();
-    const result = typeText('@e1', 'x\n');
+    const result = typeText('@e1', 'x\n', true, { pressKeys: true });
     expect(result.success).toBe(true);
     expect(result.needsTrustedInput).toBe(true);
     expect(result.commaAsKey).toBe(false);
@@ -81,7 +114,7 @@ describe('typeText key handling', () => {
   it('requests trusted input with comma keys for chip inputs', () => {
     document.body.innerHTML = '<div class="chip-bar"><input type="text" id="i"></div>';
     takeSnapshot();
-    const result = typeText('@e1', 'tag,');
+    const result = typeText('@e1', 'tag,', true, { pressKeys: true });
     expect(result.needsTrustedInput).toBe(true);
     expect(result.commaAsKey).toBe(true);
   });
@@ -100,10 +133,41 @@ describe('typeText key handling', () => {
       }
     });
     takeSnapshot();
-    const result = typeText('@e1', 'a,b\n', true, 'synthetic');
+    const result = typeText('@e1', 'a,b\n', true, { pressKeys: true, mode: 'synthetic' });
     expect(result.success).toBe(true);
     expect(keys).toEqual([',', 'Enter']);
     expect(chips).toEqual(['a', 'b']);
+  });
+});
+
+describe('typeText field preparation for trusted input', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('does not throw for email inputs with clearFirst=false', () => {
+    document.body.innerHTML = '<input type="email" id="e" value="a@b.c">';
+    takeSnapshot();
+    const result = typeText('@e1', 'x\n', false, { pressKeys: true });
+    expect(result).toMatchObject({ success: true, needsTrustedInput: true });
+    expect((document.getElementById('e') as HTMLInputElement).value).toBe('a@b.c');
+  });
+
+  it('clears number inputs that have no selection API when clearFirst=true', () => {
+    document.body.innerHTML = '<input type="number" id="n" value="12">';
+    takeSnapshot();
+    const result = typeText('@e1', '3\n', true, { pressKeys: true });
+    expect(result).toMatchObject({ success: true, needsTrustedInput: true });
+    expect((document.getElementById('n') as HTMLInputElement).value).toBe('');
+  });
+
+  it('selects existing text of text inputs when clearFirst=true', () => {
+    document.body.innerHTML = '<input type="text" id="i" value="old">';
+    takeSnapshot();
+    typeText('@e1', 'new\n', true, { pressKeys: true });
+    const input = document.getElementById('i') as HTMLInputElement;
+    expect(input.value).toBe('old');
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 3]);
   });
 });
 

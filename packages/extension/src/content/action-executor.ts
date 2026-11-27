@@ -95,7 +95,12 @@ function composedParent(el: Element): Element | null {
   return root instanceof ShadowRoot ? root.host : null;
 }
 
-const CHIP_PATTERN = /chip|(^|[-_\s])tags?([-_\s]|$)/i;
+/**
+ * "chip"/"chips" as a word or camel-case part (mat-chip-grid, MuiChip-root,
+ * ChipInput, ytcp-chip-bar) but not inside another word ("microchip"), or
+ * "tag"/"tags" delimited by -, _ or whitespace.
+ */
+const CHIP_PATTERN = /(?:^|[^a-zA-Z])chips?(?![a-z])|Chips?(?![a-z])|(?:^|[-_\s])[tT]ags?(?:[-_\s]|$)/;
 
 /**
  * Heuristic: is this input part of a chip/tag editor (e.g. YouTube Studio tags,
@@ -105,7 +110,11 @@ export function isChipInput(el: Element): boolean {
   let cur: Element | null = el;
   for (let depth = 0; cur && depth < 8; depth++) {
     const cls = typeof cur.className === 'string' ? cur.className : '';
-    if (CHIP_PATTERN.test(cur.tagName) || CHIP_PATTERN.test(cur.id) || CHIP_PATTERN.test(cls)) {
+    if (
+      CHIP_PATTERN.test(cur.tagName.toLowerCase()) ||
+      CHIP_PATTERN.test(cur.id) ||
+      CHIP_PATTERN.test(cls)
+    ) {
       return true;
     }
     cur = composedParent(cur);
@@ -155,6 +164,19 @@ function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: strin
   else el.value = value;
 }
 
+export type TypeTextMode = 'auto' | 'synthetic' | 'value';
+
+export interface TypeTextOptions {
+  /**
+   * Send "\n" / "\t" (and "," on chip inputs) as key presses. When false
+   * (the default) the text, including newlines and tabs, is inserted as the
+   * value exactly as before key handling existed.
+   */
+  pressKeys?: boolean;
+  /** 'auto' asks the service worker for trusted input; 'synthetic' is its fallback. */
+  mode?: TypeTextMode;
+}
+
 type TypeTextResult = {
   success: boolean;
   error?: string;
@@ -165,9 +187,10 @@ type TypeTextResult = {
 /**
  * Type text into an element by @ref.
  *
- * Plain text keeps the original behaviour (value setter + input/change events).
- * When the text contains "\n" / "\t" (or "," on a chip/tag input) and
- * `mode` is 'auto', the element is only focused/cleared and
+ * Without `pressKeys` the text is inserted with the value setter (or
+ * execCommand for contenteditable) and input/change events, newlines included.
+ * With `pressKeys`, when the text contains "\n" / "\t" (or "," on a chip/tag
+ * input) and `mode` is 'auto', the element is only focused/cleared and
  * `needsTrustedInput: true` is returned so the service worker can type it with
  * trusted CDP input events. `mode: 'synthetic'` is the fallback when the
  * debugger is unavailable: synthetic KeyboardEvents are dispatched per key.
@@ -176,8 +199,9 @@ export function typeText(
   ref: string,
   text: string,
   clearFirst = true,
-  mode: 'auto' | 'synthetic' | 'value' = 'auto'
+  options: TypeTextOptions = {}
 ): TypeTextResult {
+  const { pressKeys = false, mode = 'auto' } = options;
   const el = resolveRef(ref);
   if (!el) {
     return { success: false, error: `Element not found for ref ${ref}` };
@@ -202,24 +226,10 @@ export function typeText(
   (el as HTMLElement).focus();
   el.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
 
-  if (mode !== 'value' && needsKeyPresses(el, text)) {
+  if (pressKeys && mode !== 'value' && needsKeyPresses(el, text)) {
     if (mode === 'auto') {
       // Prepare the field; the service worker types with trusted events.
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-        if (clearFirst) {
-          el.select();
-        } else {
-          const end = el.value.length;
-          el.setSelectionRange?.(end, end);
-        }
-      } else {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        if (!clearFirst) range.collapse(false);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
+      prepareForTrustedTyping(el, clearFirst);
       return { success: true, needsTrustedInput: true, commaAsKey: isChipInput(el) };
     }
 
@@ -228,9 +238,9 @@ export function typeText(
     let first = true;
     for (const t of tokens) {
       if (t.kind === 'text') {
-        insertPlainText(el, t.text, first && clearFirst);
+        insertPlainText(el, t.text, first && clearFirst, false);
       } else {
-        if (first && clearFirst) insertPlainText(el, '', true);
+        if (first && clearFirst) insertPlainText(el, '', true, false);
         dispatchSyntheticKey(el, t.key);
       }
       first = false;
@@ -242,8 +252,49 @@ export function typeText(
   return { success: true };
 }
 
-/** Original value-based text insertion (input/textarea/contenteditable). */
-function insertPlainText(el: Element, text: string, clearFirst: boolean): void {
+/**
+ * Select the field's content (clearFirst) or move the caret to the end so
+ * that trusted typing replaces or appends to it.
+ */
+function prepareForTrustedTyping(el: Element, clearFirst: boolean): void {
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (clearFirst) {
+      el.select();
+      if (el.selectionStart === null) {
+        // Types without a selection API (email, number): clear the value so
+        // the typed text does not get appended to it.
+        setNativeValue(el, '');
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } else {
+      try {
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      } catch {
+        // email/number inputs throw InvalidStateError; keep the caret as is
+      }
+    }
+    return;
+  }
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  if (!clearFirst) range.collapse(false);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+/**
+ * Original value-based text insertion (input/textarea/contenteditable).
+ * `insertEmpty=false` skips the insert step for an empty string (used when
+ * the synthetic key path only needs the field cleared).
+ */
+function insertPlainText(
+  el: Element,
+  text: string,
+  clearFirst: boolean,
+  insertEmpty = true
+): void {
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
     if (clearFirst) {
       el.value = '';
@@ -277,7 +328,7 @@ function insertPlainText(el: Element, text: string, clearFirst: boolean): void {
       selection?.removeAllRanges();
       selection?.addRange(range);
     }
-    if (!text) return;
+    if (!text && !insertEmpty) return;
     // Try execCommand first (works with most editors)
     let inserted = false;
     if (typeof document.execCommand === 'function') {
