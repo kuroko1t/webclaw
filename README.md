@@ -289,13 +289,17 @@ examples/
 
 ### Multi-Session Support
 
-WebClaw automatically scans ports 18080–18089, so you can run up to **10 MCP server instances** simultaneously (e.g., multiple Claude Code sessions). Each instance binds to the first available port, and the Chrome extension connects to all of them.
+WebClaw automatically scans ports 18080–18109, so you can run up to **30 MCP server instances** simultaneously (e.g., multiple Claude Code sessions). Each instance binds to the first available port, and the Chrome extension connects to all of them.
+
+The extension retries the three lowest ports that have no connection every 3 seconds, where a new instance appears, and the other free ports every 30 seconds, so a new session is picked up within a few seconds without probing every port all the time.
+
+> Ports 18090–18109 need extension v0.11.0 or later; older extensions only connect to 18080–18089. The MCP server prints a warning when it binds one of these ports.
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WEBCLAW_PORT` | `18080` | WebSocket port for MCP server ↔ extension communication. When set, disables auto-scanning and uses only this port. The extension only connects to 18080–18089, so the port must be within that range. |
+| `WEBCLAW_PORT` | `18080` | WebSocket port for MCP server ↔ extension communication. When set, disables auto-scanning and uses only this port. The extension only connects to 18080–18109 (18090 and above need extension v0.11.0 or later), so the port must be within that range. A port above 18082 may be one the extension retries only every 30 seconds, so the first tool call can wait up to about 40 seconds for it before Chrome is launched. |
 | `WEBCLAW_CHROME_PROFILE` | _(unset)_ | Chrome profile directory to open when Chrome is auto-launched (`--profile-directory`, e.g. `Default` or `Profile 1`). When unset, Chrome chooses the profile as usual. On macOS it only takes effect if Chrome is not already running. |
 
 <details>
@@ -309,7 +313,8 @@ WebClaw automatically scans ports 18080–18089, so you can run up to **10 MCP s
 
 **MCP client cannot connect**
 - Ensure `npx webclaw-mcp` runs successfully from your terminal
-- Check for port conflicts: WebClaw auto-scans 18080–18089. If one of them is taken by another program, set `WEBCLAW_PORT` to a free port within that range (the extension does not connect to ports outside it). If all ten are used by WebClaw instances, stop an unused instance
+- Check for port conflicts: WebClaw auto-scans 18080–18109. If one of them is taken by another program, set `WEBCLAW_PORT` to a free port within that range (the extension does not connect to ports outside it). If all thirty are used by WebClaw instances, stop an unused instance
+- If a server on port 18090 or above never connects, update the extension: versions before v0.11.0 only connect to 18080–18089
 - Restart your MCP client after updating the config
 
 **Content script not injecting**

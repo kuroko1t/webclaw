@@ -11,6 +11,7 @@ import {
   KEEPALIVE_INTERVAL_MS,
 } from 'webclaw-shared';
 import { WebSocketBridge } from './ws-bridge';
+import { ReconnectScheduler } from './reconnect-scheduler';
 import { TabManager } from './tab-manager';
 import { MessageRouter } from './message-router';
 import { DialogHandler } from './dialog-handler';
@@ -21,15 +22,22 @@ const messageRouter = new MessageRouter(tabManager);
 const dialogHandler = new DialogHandler();
 messageRouter.setDialogHandler(dialogHandler);
 
+// One bridge per port in the range; the scheduler decides when each retries.
+// Module evaluation runs on every service worker start, so a restarted worker
+// tries all ports again right away.
 const wsBridges: WebSocketBridge[] = [];
+const reconnectScheduler = new ReconnectScheduler(WEBSOCKET_PORT_RANGE_SIZE, (i) =>
+  wsBridges[i].connect(),
+);
 for (let i = 0; i < WEBSOCKET_PORT_RANGE_SIZE; i++) {
   wsBridges.push(
-    new WebSocketBridge(
-      `ws://127.0.0.1:${WEBSOCKET_DEFAULT_PORT + i}`,
-      messageRouter,
-    ),
+    new WebSocketBridge(`ws://127.0.0.1:${WEBSOCKET_DEFAULT_PORT + i}`, messageRouter, {
+      onOpen: () => reconnectScheduler.reportOpen(i),
+      onClose: (wasOpen) => reconnectScheduler.reportClosed(i, wasOpen),
+    }),
   );
 }
+reconnectScheduler.start();
 
 /** Backward-compatible single bridge reference (first port) */
 const wsBridge = wsBridges[0];
@@ -100,4 +108,4 @@ chrome.action?.onClicked?.addListener((tab) => {
 // --- Startup ---
 console.log('[WebClaw] Service Worker started');
 
-export { messageRouter, tabManager, wsBridge, wsBridges, broadcastToSidePanel };
+export { messageRouter, tabManager, wsBridge, wsBridges, reconnectScheduler, broadcastToSidePanel };

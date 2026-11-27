@@ -24,8 +24,37 @@ export const SIDE_PANEL_PREFIX = 'webclaw-sidepanel';
 /** Default WebSocket port for MCP ↔ Extension communication */
 export const WEBSOCKET_DEFAULT_PORT = 18080;
 
-/** Number of ports to scan for multi-session support (18080–18089) */
-export const WEBSOCKET_PORT_RANGE_SIZE = 10;
+/** Number of ports to scan for multi-session support (18080–18109) */
+export const WEBSOCKET_PORT_RANGE_SIZE = 30;
+
+/**
+ * Size of the port range before it was widened (18080–18089). Extensions
+ * older than WIDE_PORT_RANGE_EXTENSION_VERSION only connect to these ports.
+ */
+export const WEBSOCKET_LEGACY_PORT_RANGE_SIZE = 10;
+
+/** First extension version that connects to the whole port range. */
+export const WIDE_PORT_RANGE_EXTENSION_VERSION = '0.11.0';
+
+/**
+ * Extension reconnect schedule.
+ *
+ * The MCP server binds the lowest free port, so a new session almost always
+ * appears on one of the lowest ports that have no connection. The extension
+ * retries the RECONNECT_FAST_PORT_COUNT lowest unconnected ports every
+ * RECONNECT_FAST_INTERVAL_MS and the others every RECONNECT_SLOW_INTERVAL_MS.
+ * A port whose connection just closed is retried at the fast interval for
+ * RECONNECT_FAST_ATTEMPTS_AFTER_DISCONNECT attempts, so a restarted server
+ * gets its connection back quickly wherever it is in the range.
+ *
+ * Chrome adds its own delay of 1-5 seconds before each WebSocket connection
+ * once there have been many recent failures, so in practice an attempt
+ * happens up to 5 seconds after its timer fires.
+ */
+export const RECONNECT_FAST_INTERVAL_MS = 3_000;
+export const RECONNECT_SLOW_INTERVAL_MS = 30_000;
+export const RECONNECT_FAST_PORT_COUNT = 3;
+export const RECONNECT_FAST_ATTEMPTS_AFTER_DISCONNECT = 5;
 
 /** Environment variable to override the WebSocket port */
 export const WEBSOCKET_PORT_ENV = 'WEBCLAW_PORT';

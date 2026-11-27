@@ -19,6 +19,16 @@ import {
 } from 'webclaw-shared';
 import { launchChrome } from './chrome-launcher.js';
 
+export interface WebSocketClientOptions {
+  /**
+   * How long to wait for the extension to connect on its own before the
+   * first Chrome launch (0 = launch right away).
+   */
+  preLaunchWaitMs?: number;
+  /** Extra line appended to "extension not connected" errors. */
+  connectNote?: string | null;
+}
+
 interface PendingRequest {
   resolve: (value: BridgeMessage) => void;
   reject: (error: Error) => void;
@@ -97,9 +107,13 @@ export class WebSocketClient {
   private pendingRequests = new Map<string, PendingRequest>();
   private connectingPromise: Promise<void> | null = null;
   private chromeLaunched = false;
+  private preLaunchWaitMs: number;
+  private connectNote: string | null;
 
-  private constructor(wss: WebSocketServer) {
+  private constructor(wss: WebSocketServer, options: WebSocketClientOptions) {
     this.wss = wss;
+    this.preLaunchWaitMs = options.preLaunchWaitMs ?? 0;
+    this.connectNote = options.connectNote ?? null;
 
     this.wss.on('error', (err) => {
       console.error('[WebClaw WS] Server error:', err.message);
@@ -143,13 +157,17 @@ export class WebSocketClient {
   }
 
   /** Create a WebSocketClient and wait for the server to be listening. */
-  static async create(port: number, host = '127.0.0.1'): Promise<WebSocketClient> {
+  static async create(
+    port: number,
+    host = '127.0.0.1',
+    options: WebSocketClientOptions = {}
+  ): Promise<WebSocketClient> {
     const wss = new WebSocketServer({ port, host, verifyClient: createVerifyClient(port) });
     await new Promise<void>((resolve, reject) => {
       wss.once('listening', resolve);
       wss.once('error', reject);
     });
-    return new WebSocketClient(wss);
+    return new WebSocketClient(wss, options);
   }
 
   private handleMessage(message: unknown): void {
@@ -196,7 +214,15 @@ export class WebSocketClient {
   }
 
   private async _doEnsureConnected(timeoutMs: number): Promise<void> {
+    let waitMs = timeoutMs;
     if (!this.chromeLaunched) {
+      if (this.preLaunchWaitMs > 0) {
+        console.error(
+          `[WebClaw] Chrome extension not connected. Waiting up to ${Math.round(this.preLaunchWaitMs / 1000)}s ` +
+          'for it before launching Chrome (the extension retries this port at its slow interval)...'
+        );
+        if (await this.waitForConnection(this.preLaunchWaitMs)) return;
+      }
       console.error('[WebClaw] Chrome extension not connected. Launching Chrome...');
       const launched = await launchChrome();
       if (!launched) {
@@ -209,37 +235,46 @@ export class WebSocketClient {
       console.error('[WebClaw] Chrome launched. Waiting for extension to connect...');
     } else {
       console.error('[WebClaw] Waiting for Chrome extension to reconnect...');
+      waitMs = Math.max(timeoutMs, this.preLaunchWaitMs);
     }
 
-    // Wait for extension to connect via WebSocket
-    return new Promise<void>((resolve, reject) => {
+    if (await this.waitForConnection(waitMs)) return;
+    throw new Error(this.withConnectNote(
+      'Chrome was launched but the WebClaw extension did not connect.\n' +
+      'Please ensure the WebClaw extension is installed and enabled:\n' +
+      '  1. Open chrome://extensions/\n' +
+      '  2. Enable Developer mode\n' +
+      '  3. Click "Load unpacked" and select the extension dist/ folder\n' +
+      '  4. Verify the extension is enabled'
+    ));
+  }
+
+  /** Resolve true once the extension connects, or false after timeoutMs. */
+  private waitForConnection(timeoutMs: number): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
       // Check again — might have connected while we were launching Chrome
       if (this.isConnected()) {
-        resolve();
+        resolve(true);
         return;
       }
 
       const timeout = setTimeout(() => {
         this.wss.removeListener('connection', onConnection);
-
-        reject(new Error(
-          'Chrome was launched but the WebClaw extension did not connect.\n' +
-          'Please ensure the WebClaw extension is installed and enabled:\n' +
-          '  1. Open chrome://extensions/\n' +
-          '  2. Enable Developer mode\n' +
-          '  3. Click "Load unpacked" and select the extension dist/ folder\n' +
-          '  4. Verify the extension is enabled'
-        ));
+        resolve(false);
       }, timeoutMs);
 
       const onConnection = () => {
         clearTimeout(timeout);
         // Small delay to let the connection handler in constructor finish setting up
-        setTimeout(() => resolve(), 50);
+        setTimeout(() => resolve(true), 50);
       };
 
       this.wss.once('connection', onConnection);
     });
+  }
+
+  private withConnectNote(message: string): string {
+    return this.connectNote ? `${message}\nNote: ${this.connectNote}` : message;
   }
 
   /** Send a request and wait for the response. Auto-connects if needed. */
@@ -254,7 +289,7 @@ export class WebSocketClient {
     }
 
     if (!this.connection || this.connection.readyState !== WebSocket.OPEN) {
-      throw new Error('Chrome extension is not connected');
+      throw new Error(this.withConnectNote('Chrome extension is not connected'));
     }
 
     const request = createRequest(method, payload);
