@@ -188,9 +188,9 @@ Every interactive element gets a stable `@ref` label. The AI reads the tree, pic
 | `page_snapshot` | `focusRegion?`, `interactiveOnly?`, `tabId?` | Get a compact accessibility tree with `@ref` labels |
 | `click` | `ref`, `snapshotId`, `tabId?` | Click an element by its `@ref` label |
 | `hover` | `ref`, `snapshotId`, `tabId?` | Hover over an element to reveal hidden UI (dropdowns, tooltips) |
-| `type_text` | `ref`, `text`, `snapshotId`, `clearFirst?`, `tabId?` | Type text into an input/textarea by `@ref` |
+| `type_text` | `ref`, `text`, `snapshotId`, `clearFirst?`, `pressKeys?`, `tabId?` | Type text into an input/textarea by `@ref` (`pressKeys` sends `\n`/`\t`/`,` as key presses) |
 | `select_option` | `ref`, `value`, `snapshotId`, `tabId?` | Select a dropdown option by `@ref` |
-| `drop_files` | `ref`, `snapshotId`, `files`, `tabId?` | Drop files onto an element (e.g., upload images to GitHub issues) |
+| `drop_files` | `ref`, `snapshotId`, `files`, `tabId?` | Upload files via a file input or drop target (e.g., upload images to GitHub issues) |
 | `screenshot` | `tabId?`, `savePath?` | Capture the visible area of the active tab. With `savePath`, the PNG is saved to that file instead of being returned inline |
 | `handle_dialog` | `action`, `promptText?`, `tabId?` | Handle a native browser dialog (alert/confirm/prompt) |
 | `evaluate` | `expression`, `tabId?` | Evaluate JavaScript in the page context (e.g., localStorage, cookies, computed styles) |
@@ -200,27 +200,32 @@ Every interactive element gets a stable `@ref` label. The AI reads the tree, pic
 <details>
 <summary><b>Keys, chip inputs and file uploads</b></summary>
 
-**`type_text` key presses.** Plain text is set as the field value, as before. When `text` contains
-special characters, they are sent as real (trusted) key presses through the Chrome debugger
-protocol, so widgets that only react to keyboard events work:
+**`type_text` key presses.** By default the whole `text` is set as the field value, newlines and
+tabs included. With `pressKeys: true`, special characters are sent as real (trusted) key presses
+through the Chrome debugger protocol, so widgets that only react to keyboard events work:
 
-| Character in `text` | Sent as |
+| Character in `text` | Sent as (with `pressKeys: true`) |
 |---------------------|---------|
 | `\n` | Enter (submit, commit a date/time picker, add a chip) |
 | `\t` | Tab (move focus / blur to commit a field) |
-| `,` | Comma key — only when the target is a chip/tag input (an ancestor's tag name, id or class contains `chip` or `tag`/`tags`); elsewhere commas are typed as text |
+| `,` | Comma key — only when the target is a chip/tag input (an ancestor's tag name, id or class contains `chip`/`chips` or `tag`/`tags` as a word); elsewhere commas are typed as text |
 
-Example: `type_text(ref, "tag1,tag2,")` adds two chips in YouTube Studio's tag field, and
-`type_text(ref, "2026/10/20\n")` commits a date picker's text field. The surrounding text is
-inserted with trusted `Input.insertText` (IME-safe). The debugger is attached only for the
-duration of the call; if it cannot attach (e.g. DevTools is open on the tab), synthetic
-`KeyboardEvent`s are dispatched instead.
+Example: `type_text(ref, "tag1,tag2,", pressKeys: true)` adds two chips in YouTube Studio's tag
+field, and `type_text(ref, "2026/10/20\n", pressKeys: true)` commits a date picker's text field.
+Enter can submit a form or send a chat message, so leave `pressKeys` off to enter multi-line
+text as is. The surrounding text is inserted with trusted `Input.insertText` (IME-safe). The
+debugger is attached only for the duration of the call (Chrome shows its "started debugging"
+bar meanwhile) and is shared with `handle_dialog`. If it cannot attach (e.g. DevTools is open on
+the tab), synthetic `KeyboardEvent`s are dispatched instead; if typing fails part way, the error
+says how many characters were sent and nothing is typed again.
 
-**`drop_files` on upload buttons.** If `ref` is not an `<input type="file">`, the nearest file
-input in the page (shadow DOM included) is used — the one sharing the closest ancestor with
-`ref`, e.g. the hidden input behind an "Select files" button. Its `files` are set directly, so
-no OS file picker is needed. Synthetic drag-and-drop on `ref` is only used when the page has
-no file input.
+**`drop_files` on upload buttons.** If `ref` is not an `<input type="file">`, a file input near
+`ref` is used: one in the same `<form>` / `<dialog>` / `[role="dialog"]`, or within five
+ancestors when there is none (shadow DOM included), e.g. the hidden input behind a "Select files"
+button. Inputs that are disabled, whose `accept` does not match the files, or that lack
+`multiple` for several files are skipped; among the rest the closest one wins. Its `files` are
+set directly, so no OS file picker is needed. Without such an input, synthetic drag-and-drop
+events are dispatched on `ref`.
 
 </details>
 

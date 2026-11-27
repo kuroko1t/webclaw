@@ -554,7 +554,10 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
   // --- Tool: drop_files ---
   server.tool(
     'drop_files',
-    'Drop files onto an element (file input or drag-and-drop target) for uploading',
+    'Upload files to an element. On an <input type="file"> the files are set directly. ' +
+      'On another element (an upload button or drop zone) the files are set on an <input type="file"> ' +
+      'in the same form or dialog (or a few levels up) that accepts them; ' +
+      'if there is none, drag-and-drop events are dispatched on the element.',
     {
       ref: z.string().regex(/^@e\d+$/).describe('Element reference (e.g., @e1)'),
       snapshotId: z.string().min(1).describe('Snapshot ID from the most recent page_snapshot call'),
