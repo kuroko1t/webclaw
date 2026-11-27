@@ -207,8 +207,13 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
+      // Set when trusted key presses were unavailable and synthetic events were used
+      const warning = (response.payload as { warning?: string } | undefined)?.warning;
       return {
-        content: [{ type: 'text', text: `Typed "${text}" into ${ref}` }],
+        content: [{
+          type: 'text',
+          text: `Typed "${text}" into ${ref}` + (warning ? `\nWarning: ${warning}` : ''),
+        }],
       };
     }
   );
@@ -584,8 +589,11 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
         return formatErrorResponse(response.payload);
       }
       const fileNames = files.map((f) => f.name).join(', ');
+      // How the files were delivered: file-input, nearest-file-input or drag-and-drop
+      const method = (response.payload as { method?: string } | undefined)?.method;
+      const via = method ? ` (${method})` : '';
       return {
-        content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}: ${fileNames}` }],
+        content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}${via}: ${fileNames}` }],
       };
     }
   );
