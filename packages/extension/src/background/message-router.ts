@@ -28,6 +28,7 @@ import type {
 import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
 import type { DialogHandler } from './dialog-handler';
+import { typeWithDebugger, TrustedInputError } from './trusted-input';
 
 /** Default timeout for waiting for tab load (30 seconds) */
 const TAB_LOAD_TIMEOUT_MS = 30_000;
@@ -171,7 +172,10 @@ export class MessageRouter {
 
       // Classify errors for better diagnostics
       let code = 'HANDLER_ERROR';
-      if (message.includes('not found') || message.includes('No tab with id')) {
+      if (err instanceof TrustedInputError && err.phase === 'input') {
+        // Typing stopped part way: retrying as is would enter the text twice.
+        code = 'PARTIAL_INPUT';
+      } else if (message.includes('not found') || message.includes('No tab with id')) {
         code = 'TAB_NOT_FOUND';
       } else if (message.includes('No active tab') || message.includes('No tab')) {
         code = 'NO_ACTIVE_TAB';
@@ -282,12 +286,46 @@ export class MessageRouter {
   private async handleTypeText(params: TypeTextParams): Promise<unknown> {
     const tabId = await this.tabManager.getTargetTabId(params.tabId);
     this.validateSnapshotId(tabId, params.snapshotId);
-    return this.sendToContentScript(tabId, {
+    // Older MCP servers do not send pressKeys: treat a missing value as false.
+    const pressKeys = params.pressKeys === true;
+    const message = {
       action: 'typeText',
       ref: params.ref,
       text: params.text,
       clearFirst: params.clearFirst,
-    });
+      ...(pressKeys ? { pressKeys: true } : {}),
+    };
+    const result = await this.sendToContentScript<{
+      success: boolean;
+      error?: string;
+      needsTrustedInput?: boolean;
+      commaAsKey?: boolean;
+    }>(tabId, message);
+    if (!pressKeys || !result?.needsTrustedInput) {
+      return result;
+    }
+
+    // The text contains keys ("\n", "\t", or "," on a chip input) that must be
+    // real key presses. The content script focused/selected the field; type
+    // the text with trusted CDP input events. The debugger session is shared
+    // with the dialog handler so handle_dialog keeps working meanwhile.
+    const dialogHandler = this.dialogHandler;
+    try {
+      await typeWithDebugger(tabId, params.text, {
+        commaAsKey: result.commaAsKey ?? false,
+        acquire: dialogHandler ? (id) => dialogHandler.acquireDebugger(id) : undefined,
+      });
+      return { success: true, trusted: true };
+    } catch (err) {
+      if (!(err instanceof TrustedInputError) || err.phase !== 'attach') {
+        // Some input may already have been sent: do not type it again.
+        throw err;
+      }
+      // Debugger unavailable (e.g. DevTools open) and nothing was typed yet:
+      // fall back to synthetic events.
+      const fallback = await this.sendToContentScript(tabId, { ...message, mode: 'synthetic' });
+      return { ...(fallback as object), trusted: false, warning: `Trusted input failed: ${err.message}` };
+    }
   }
 
   private async handleSelectOption(

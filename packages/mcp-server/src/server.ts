@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ERROR_RECOVERY } from 'webclaw-shared';
+import { ERROR_RECOVERY, typeTextTimeoutMs } from 'webclaw-shared';
 import type { BridgeMessage, BridgeMethod, ErrorCode } from 'webclaw-shared';
 import { WebSocketClient } from './ws-client.js';
 
@@ -65,10 +65,15 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
   async function requestWithSessionTab(
     method: BridgeMethod,
     params: Record<string, unknown>,
-    requestedTabId?: number
+    requestedTabId?: number,
+    timeoutMs?: number
   ): Promise<BridgeMessage> {
     const resolvedTabId = await resolveTabId(requestedTabId);
-    const response = await wsClient.requestWithRetry(method, { ...params, tabId: resolvedTabId });
+    const send = (tabId: number) =>
+      timeoutMs === undefined
+        ? wsClient.requestWithRetry(method, { ...params, tabId })
+        : wsClient.requestWithRetry(method, { ...params, tabId }, timeoutMs);
+    const response = await send(resolvedTabId);
 
     if (
       response.type === 'error' &&
@@ -79,7 +84,7 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       if (errorObj?.code === 'TAB_NOT_FOUND') {
         sessionTabId = null;
         const newTabId = await resolveTabId(requestedTabId);
-        return wsClient.requestWithRetry(method, { ...params, tabId: newTabId });
+        return send(newTabId);
       }
     }
 
@@ -174,26 +179,41 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
   // --- Tool: type_text ---
   server.tool(
     'type_text',
-    'Type text into an input element identified by its @ref',
+    'Type text into an input element identified by its @ref. ' +
+      'By default the text is inserted as the value, including any newlines or tabs. ' +
+      'Set pressKeys to send "\\n" as Enter, "\\t" as Tab and, on chip/tag inputs, "," as the Comma key ' +
+      'as real key presses (for chip/tag editors, date pickers or submitting a field). ' +
+      'Enter may submit a form or send a chat message.',
     {
       ref: z.string().regex(/^@e\d+$/).describe('Element reference (e.g., @e1)'),
       text: z.string().describe('Text to type'),
       snapshotId: z.string().min(1).describe('Snapshot ID from the most recent page_snapshot call'),
       clearFirst: z.boolean().optional().describe('Clear existing text before typing (default: true)'),
+      pressKeys: z.boolean().optional().describe(
+        'Send "\\n" as Enter, "\\t" as Tab and, on chip/tag inputs, "," as the Comma key ' +
+          'as trusted key presses (default: false). Enter can submit forms or send chat messages; ' +
+          'leave this off to insert multi-line text as is.'
+      ),
       tabId: z.number().int().optional().describe('Target tab ID'),
     },
-    async ({ ref, text, snapshotId, clearFirst, tabId }) => {
+    async ({ ref, text, snapshotId, clearFirst, pressKeys, tabId }) => {
       const response = await requestWithSessionTab('typeText', {
         ref,
         text,
         snapshotId,
         clearFirst,
-      }, tabId);
+        pressKeys,
+      }, tabId, pressKeys ? typeTextTimeoutMs(text, true) : undefined);
       if (response.type === 'error') {
         return formatErrorResponse(response.payload);
       }
+      // Set when trusted key presses were unavailable and synthetic events were used
+      const warning = (response.payload as { warning?: string } | undefined)?.warning;
       return {
-        content: [{ type: 'text', text: `Typed "${text}" into ${ref}` }],
+        content: [{
+          type: 'text',
+          text: `Typed "${text}" into ${ref}` + (warning ? `\nWarning: ${warning}` : ''),
+        }],
       };
     }
   );
@@ -539,7 +559,10 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
   // --- Tool: drop_files ---
   server.tool(
     'drop_files',
-    'Drop files onto an element (file input or drag-and-drop target) for uploading',
+    'Upload files to an element. On an <input type="file"> the files are set directly. ' +
+      'On another element (an upload button or drop zone) the files are set on an <input type="file"> ' +
+      'in the same form or dialog (or a few levels up) that accepts them; ' +
+      'if there is none, drag-and-drop events are dispatched on the element.',
     {
       ref: z.string().regex(/^@e\d+$/).describe('Element reference (e.g., @e1)'),
       snapshotId: z.string().min(1).describe('Snapshot ID from the most recent page_snapshot call'),
@@ -566,8 +589,11 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
         return formatErrorResponse(response.payload);
       }
       const fileNames = files.map((f) => f.name).join(', ');
+      // How the files were delivered: file-input, nearest-file-input or drag-and-drop
+      const method = (response.payload as { method?: string } | undefined)?.method;
+      const via = method ? ` (${method})` : '';
       return {
-        content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}: ${fileNames}` }],
+        content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}${via}: ${fileNames}` }],
       };
     }
   );
