@@ -13,6 +13,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { install } from './installer.js';
 import { WEBSOCKET_DEFAULT_PORT, WEBSOCKET_PORT_ENV, WEBSOCKET_PORT_RANGE_SIZE } from 'webclaw-shared';
 
+/** How often the orphan guard checks whether the parent process is still alive. */
+const PARENT_WATCHDOG_INTERVAL_MS = 5_000;
+
 const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
@@ -96,16 +99,43 @@ More info: https://github.com/kuroko1t/webclaw`);
     console.error(`[WebClaw] WebSocket server listening on 127.0.0.1:${boundPort}`);
   }
 
-  const cleanup = async () => {
-    console.error('[WebClaw] Shutting down...');
-    await wsClient.close();
+  let cleaningUp = false;
+  const cleanup = async (reason: string) => {
+    if (cleaningUp) return;
+    cleaningUp = true;
+    console.error(`[WebClaw] Shutting down (${reason})...`);
+    try {
+      await wsClient.close();
+    } catch (err) {
+      console.error('[WebClaw] Error during shutdown:', (err as Error).message);
+    }
     process.exit(0);
   };
-  process.on('SIGTERM', cleanup);
-  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', () => void cleanup('SIGTERM'));
+  process.on('SIGINT', () => void cleanup('SIGINT'));
+  // Parent shell/terminal died (common on WSL where SIGHUP is the only signal).
+  process.on('SIGHUP', () => void cleanup('SIGHUP'));
+  // MCP client closed the stdio pipe (graceful disconnect from Claude Code etc.).
+  // The MCP SDK's StdioServerTransport does not observe stdin EOF itself, so we must.
+  process.stdin.on('end', () => void cleanup('stdin end'));
+  process.stdin.on('close', () => void cleanup('stdin close'));
+
+  // Orphan guard. When the MCP client kills the server it signals the process it
+  // spawned, which may be a launcher (npx / npm exec / a shell wrapper) rather than
+  // this process. The launcher dies, this process is reparented to init and keeps
+  // running forever, holding its WebSocket port and its memory. Node has no
+  // PR_SET_PDEATHSIG, so poll for the reparenting instead.
+  // Windows does not reparent orphans, so process.ppid never changes there and
+  // this guard simply never fires (harmless).
+  const parentPidAtStartup = process.ppid;
+  const parentWatchdog = setInterval(() => {
+    if (process.ppid !== parentPidAtStartup) void cleanup('parent process exited');
+  }, PARENT_WATCHDOG_INTERVAL_MS);
+  parentWatchdog.unref();
 
   const server = createWebClawServer({ wsClient });
   const transport = new StdioServerTransport();
+  transport.onclose = () => void cleanup('transport close');
   await server.connect(transport);
   console.error(`[WebClaw] MCP Server started (stdio transport)`);
 }

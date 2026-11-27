@@ -69,4 +69,40 @@ describe('MCP Server stdio startup', () => {
     const output = stdout + stderr;
     expect(output).toContain('webclaw');
   });
+
+  it('exits cleanly when the MCP client closes stdin', async () => {
+    const child = spawn('node', [cliPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 15000,
+      env: { ...process.env, WEBCLAW_PORT: '28080' },
+    });
+
+    try {
+      let stderr = '';
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error(`Startup timed out. stderr: ${stderr}`)), 10000);
+        child.stderr?.on('data', (chunk: Buffer) => {
+          stderr += chunk.toString();
+          if (stderr.includes('MCP Server started')) {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+      });
+
+      const exited = new Promise<number | null>((resolve) => {
+        child.on('exit', (code) => resolve(code));
+      });
+      child.stdin!.end();
+
+      const exitCode = await Promise.race([
+        exited,
+        new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 5000)),
+      ]);
+
+      expect(exitCode).toBe(0);
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+    }
+  }, 20000);
 });
