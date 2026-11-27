@@ -26,6 +26,13 @@ export const KEY_DELAY_MS = 50;
  */
 export const COMMAND_TIMEOUT_MS = 3_000;
 
+/**
+ * Upper bound for resetting focus emulation after typing. When a dialog
+ * blocks the page this command does not return either; waiting the full
+ * COMMAND_TIMEOUT_MS again would double the time until type_text returns.
+ */
+export const CLEANUP_TIMEOUT_MS = 500;
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Release function returned when the debugger session is borrowed. */
@@ -178,7 +185,7 @@ export async function typeWithDebugger(
       chrome.debugger.sendCommand(target, 'Emulation.setFocusEmulationEnabled', {
         enabled: false,
       }) as Promise<unknown>,
-      commandTimeoutMs,
+      Math.min(commandTimeoutMs, CLEANUP_TIMEOUT_MS),
       'Emulation.setFocusEmulationEnabled'
     ).catch(() => {});
     await release().catch(() => {});

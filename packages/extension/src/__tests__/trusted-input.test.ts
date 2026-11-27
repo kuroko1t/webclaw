@@ -21,6 +21,7 @@ import {
   typeWithDebugger,
   TrustedInputError,
   COMMAND_TIMEOUT_MS,
+  CLEANUP_TIMEOUT_MS,
 } from '../background/trusted-input';
 import { DialogHandler } from '../background/dialog-handler';
 
@@ -130,6 +131,28 @@ describe('typeWithDebugger', () => {
     expect(err).toBeInstanceOf(TrustedInputError);
     expect(err.phase).toBe('input');
     expect(err.message).toContain('handle_dialog');
+    expect(mockDetach).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not wait another full command timeout for the cleanup while a dialog blocks', async () => {
+    // A dialog blocks every command, including the focus emulation reset.
+    mockSendCommand.mockImplementation((_t: unknown, method: string, params?: { type?: string }) => {
+      if (method === 'Input.dispatchKeyEvent' && params?.type === 'keyDown') return new Promise(() => {});
+      if (method === 'Emulation.setFocusEmulationEnabled' && mockSendCommand.mock.calls.length > 1) {
+        return new Promise(() => {});
+      }
+      return Promise.resolve(undefined);
+    });
+    let settled = false;
+    const done = typeWithDebugger(1, 'a\n', { commaAsKey: false })
+      .catch((e) => e)
+      .finally(() => {
+        settled = true;
+      });
+    await vi.advanceTimersByTimeAsync(COMMAND_TIMEOUT_MS + CLEANUP_TIMEOUT_MS + 10);
+    expect(settled).toBe(true);
+    const err = await done;
+    expect(err).toBeInstanceOf(TrustedInputError);
     expect(mockDetach).toHaveBeenCalledTimes(1);
   });
 
